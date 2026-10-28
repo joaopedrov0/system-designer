@@ -326,6 +326,34 @@ test('caneta que também gera toque (mesa do usuário): cria UMA conexão e move
   await expect.poll(async () => (await center(page, 'api')).y).toBeCloseTo(start.y, -1)
 })
 
+test('caneta: arrastar da paleta solta o componente onde a caneta foi levantada', async ({
+  page,
+}) => {
+  await open(page)
+  const nodes = page.locator('.react-flow__node')
+  await expect(nodes).toHaveCount(3)
+  const button = (await page.getByRole('button', { name: 'Cache' }).boundingBox())!
+  const pane = (await page.locator('.react-flow__pane').boundingBox())!
+  const drop = { x: pane.x + pane.width / 2, y: pane.y + pane.height - 120 }
+  await penDragWithTouch(page, { x: button.x + 20, y: button.y + button.height / 2 }, drop)
+  // Exatamente um novo componente (o click que segue o arraste não adiciona outro)...
+  await expect(nodes).toHaveCount(4)
+  await page.waitForTimeout(300)
+  await expect(nodes).toHaveCount(4)
+  // ...centrado onde a caneta foi levantada.
+  const added = (await nodes.filter({ hasText: 'Cache' }).boundingBox())!
+  expect(Math.abs(added.x + added.width / 2 - drop.x)).toBeLessThan(10)
+  expect(Math.abs(added.y + added.height / 2 - drop.y)).toBeLessThan(10)
+  await expect(page.getByTestId('palette-ghost')).toHaveCount(0)
+
+  // Soltar fora do canvas não cria nada; um toque simples continua adicionando.
+  await penDragWithTouch(page, { x: button.x + 20, y: button.y + 4 }, { x: button.x + 40, y: 20 })
+  await page.waitForTimeout(300)
+  await expect(nodes).toHaveCount(4)
+  await penDrag(page, { x: button.x + 20, y: button.y + 4 }, { x: button.x + 20, y: button.y + 4 })
+  await expect(nodes).toHaveCount(5)
+})
+
 test('caneta: Espaço+arrastar move a vista, mesmo começando sobre um nó', async ({ page }) => {
   await open(page)
   const start = await center(page, 'api')
