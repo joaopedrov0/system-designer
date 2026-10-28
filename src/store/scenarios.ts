@@ -2,7 +2,7 @@
  * Ciclo de vida dos cenários: abrir, criar, duplicar, excluir, importar.
  * Fala com o ScenarioRepository e troca o cenário aberto no editor.
  */
-import { createScenario, fromJSON, type Scenario } from '../core'
+import { createScenario, fromJSON, toJSON, type Scenario } from '../core'
 import type { ScenarioRepository, ScenarioSummary } from '../persistence/repository'
 import { createAutosave, type Autosave } from './autosave'
 import { useEditor } from './editor'
@@ -105,6 +105,28 @@ export async function importScenario(text: string): Promise<Scenario> {
   await repository().save(scenario)
   await show(scenario)
   return scenario
+}
+
+/**
+ * Abre o cenário de um arquivo que vai ser vinculado. O arquivo é este cenário: se o id
+ * já existe no navegador, abre o existente e aplica o conteúdo do arquivo como um passo
+ * de desfazer (nada se perde); senão, guarda como um cenário novo.
+ */
+export async function openFileScenario(scenario: Scenario): Promise<void> {
+  await autosave?.flush()
+  const existing =
+    scenario.id === useEditor.getState().scenario.id
+      ? useEditor.getState().scenario
+      : await repository()
+          .load(scenario.id)
+          .catch(() => undefined)
+  if (!existing) {
+    await repository().save(scenario)
+    await show(scenario)
+    return
+  }
+  if (existing !== useEditor.getState().scenario) await show(existing)
+  if (toJSON(existing) !== toJSON(scenario)) useEditor.getState().replaceScenario(scenario)
 }
 
 async function show(scenario: Scenario) {

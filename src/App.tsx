@@ -2,6 +2,7 @@ import { ReactFlowProvider } from '@xyflow/react'
 import { useEffect, useState } from 'react'
 import { IndexedDbRepository } from './persistence/indexeddb'
 import { redo, undo, useEditor } from './store/editor'
+import { initFileLinks } from './store/fileLinks'
 import { initScenarios } from './store/scenarios'
 import { useResolvedTheme, useView } from './store/view'
 import Canvas from './ui/canvas/Canvas'
@@ -16,6 +17,8 @@ export default function App() {
   const scenarioId = useEditor((s) => s.scenario.id)
   const lastError = useEditor((s) => s.lastError)
   const clearError = useEditor((s) => s.clearError)
+  const notice = useEditor((s) => s.notice)
+  const clearNotice = useEditor((s) => s.clearNotice)
 
   const theme = useResolvedTheme()
   useEffect(() => {
@@ -24,7 +27,10 @@ export default function App() {
 
   useEffect(() => {
     initScenarios(repository).then(
-      () => setReady(true),
+      () => {
+        setReady(true)
+        initFileLinks()
+      },
       (err) => useEditor.getState().showError(err),
     )
   }, [])
@@ -58,6 +64,12 @@ export default function App() {
     return () => clearTimeout(t)
   }, [lastError, clearError])
 
+  useEffect(() => {
+    if (!notice) return
+    const t = setTimeout(clearNotice, 3500)
+    return () => clearTimeout(t)
+  }, [notice, clearNotice])
+
   return (
     <ReactFlowProvider>
       <div className="flex h-screen flex-col bg-slate-50 text-slate-900">
@@ -79,6 +91,15 @@ export default function App() {
                 className="absolute bottom-4 left-1/2 z-10 max-h-64 max-w-xl -translate-x-1/2 cursor-pointer overflow-y-auto rounded-md bg-red-600 px-4 py-2 text-sm whitespace-pre-line text-white shadow-lg"
               >
                 {lastError}
+              </div>
+            )}
+            {notice && !lastError && (
+              <div
+                role="status"
+                onClick={clearNotice}
+                className="absolute bottom-4 left-1/2 z-10 max-w-xl -translate-x-1/2 cursor-pointer rounded-md bg-slate-800 px-4 py-2 text-sm text-slate-50 shadow-lg"
+              >
+                {notice}
               </div>
             )}
           </main>

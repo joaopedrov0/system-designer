@@ -55,6 +55,8 @@ interface EditorState {
   scenario: Scenario
   saveStatus: SaveStatus
   lastError: string | null
+  /** Aviso informativo passageiro (ex.: "copiado", "atualizado pelo arquivo"). */
+  notice: string | null
   /** Espelho da seleção do canvas (sem histórico). */
   selection: Selection
   /** Busca/filtro do canvas (sem histórico). */
@@ -62,10 +64,14 @@ interface EditorState {
 
   /** Troca o cenário aberto e zera o histórico. */
   open: (scenario: Scenario) => void
+  /** Substitui o conteúdo do cenário aberto (ex.: mudado por fora); entra no histórico. */
+  replaceScenario: (scenario: Scenario) => void
   setSaveStatus: (status: SaveStatus) => void
   clearError: () => void
   /** Mostra um erro de uma operação fora dos commands (importar, exportar, abrir...). */
   showError: (error: unknown) => void
+  showNotice: (text: string) => void
+  clearNotice: () => void
   setSelection: (selection: Selection) => void
   setSearch: (search: Partial<SearchState>) => void
 
@@ -124,6 +130,7 @@ export const useEditor = create<EditorState>()(
         scenario: createScenario('Meu sistema'),
         saveStatus: 'saved',
         lastError: null,
+        notice: null,
         selection: emptySelection,
         search: { text: '', kind: 'all' },
 
@@ -131,10 +138,18 @@ export const useEditor = create<EditorState>()(
           set({ scenario, lastError: null, saveStatus: 'saved', selection: emptySelection })
           useEditor.temporal.getState().clear()
         },
+        replaceScenario: (scenario) => {
+          if (scenario.id !== get().scenario.id) {
+            throw new Error('replaceScenario não troca de cenário; use open().')
+          }
+          set({ scenario, lastError: null, selection: emptySelection })
+        },
         setSaveStatus: (saveStatus) => set({ saveStatus }),
         clearError: () => set({ lastError: null }),
         showError: (error) =>
           set({ lastError: error instanceof Error ? error.message : String(error) }),
+        showNotice: (notice) => set({ notice }),
+        clearNotice: () => set({ notice: null }),
         setSelection: (selection) => set({ selection }),
         setSearch: (search) => set({ search: { ...get().search, ...search } }),
 

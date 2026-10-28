@@ -3,6 +3,7 @@ import { useState, type ReactNode } from 'react'
 import { useStore } from 'zustand'
 import { redo, undo, useEditor, type SaveStatus } from '../../store/editor'
 import ExportMenu from './ExportMenu'
+import FileLinkMenu from './FileLinkMenu'
 import LayoutButton from './LayoutButton'
 import ScenarioMenu from './ScenarioMenu'
 import ThemeToggle from './ThemeToggle'
@@ -51,6 +52,7 @@ export default function Toolbar() {
         }}
       />
       <ScenarioMenu />
+      <FileLinkMenu />
 
       <div className="ml-auto flex items-center gap-1">
         <span

@@ -30,7 +30,13 @@ export default function Palette() {
       <Heading>Componentes</Heading>
       <ul className="px-2">
         {componentKindList.map((def) => (
-          <PaletteButton key={def.kind} item={def.kind} label={def.label} onAdd={addAtCenter} onDrop={dropAt}>
+          <PaletteButton
+            key={def.kind}
+            item={def.kind}
+            label={def.label}
+            onAdd={addAtCenter}
+            onDrop={dropAt}
+          >
             <span
               className="flex h-7 w-7 items-center justify-center rounded text-white"
               style={{ backgroundColor: def.color }}
