@@ -1,5 +1,6 @@
+// Fora do index.ts de propósito: o elkjs (~1,4 MB) só é carregado quando alguém organiza.
 import type { ElkNode } from 'elkjs/lib/elk.bundled.js'
-import type { Point, Scenario } from '../../core'
+import type { Point, Scenario } from './model'
 
 export interface ComputedLayout {
   positions: Record<string, Point>

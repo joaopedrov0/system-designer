@@ -4,6 +4,6 @@
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.test.tsbuildinfo",
     "types": ["node"]
   },
-  "include": ["src/**/*.test.ts", "scripts", "e2e", "playwright.config.ts"],
+  "include": ["src/**/*.test.ts", "scripts", "e2e", "mcp", "playwright.config.ts"],
   "exclude": []
 }

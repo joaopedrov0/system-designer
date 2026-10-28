@@ -12,6 +12,8 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "schema": "tsx scripts/generate-schema.ts",
+    "mcp": "node bin/mcp.mjs",
+    "sd": "node bin/sd.mjs",
     "e2e": "playwright test"
   },
   "dependencies": {

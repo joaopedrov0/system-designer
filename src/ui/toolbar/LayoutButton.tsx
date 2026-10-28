@@ -2,7 +2,7 @@ import { useReactFlow } from '@xyflow/react'
 import { LayoutDashboard, LoaderCircle } from 'lucide-react'
 import { useState } from 'react'
 import { useEditor } from '../../store/editor'
-import { computeLayout } from '../canvas/autoLayout'
+import { computeLayout } from '../../core/layout'
 import { NODE_WIDTH } from '../canvas/ComponentNode'
 import { NODE_HEIGHT } from '../canvas/placement'
 
