@@ -1,0 +1,89 @@
+@import 'tailwindcss';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  /* Fundo de painéis, nós e campos. Use no lugar de bg-white (que não muda no escuro). */
+  --color-surface: #ffffff;
+}
+
+/*
+ * Modo escuro: em vez de espalhar `dark:` pelos componentes, remapeia as escalas que a
+ * interface usa. A escala cinza (slate) é invertida e deslocada para manter contraste entre
+ * página, painéis e hovers; o âmbar (notas) e o vermelho claro também são invertidos.
+ * Cores próprias dos tipos de componente (ícones) não mudam.
+ */
+.dark {
+  color-scheme: dark;
+  --color-surface: oklch(20.8% 0.042 265.755);
+  --color-slate-50: oklch(12.9% 0.042 264.695);
+  --color-slate-100: oklch(27.9% 0.041 260.031);
+  --color-slate-200: oklch(37.2% 0.044 257.287);
+  --color-slate-300: oklch(44.6% 0.043 257.281);
+  --color-slate-400: oklch(55.4% 0.046 257.417);
+  --color-slate-500: oklch(70.4% 0.04 256.788);
+  --color-slate-600: oklch(86.9% 0.022 252.894);
+  --color-slate-700: oklch(92.9% 0.013 255.508);
+  --color-slate-800: oklch(96.8% 0.007 247.896);
+  --color-slate-900: oklch(98.4% 0.003 247.858);
+  --color-slate-950: oklch(100% 0 0);
+  --color-amber-50: oklch(27.9% 0.077 45.635);
+  --color-amber-100: oklch(41.4% 0.112 45.904);
+  --color-amber-200: oklch(47.3% 0.137 46.201);
+  --color-amber-600: oklch(82.8% 0.189 84.429);
+  --color-amber-700: oklch(87.9% 0.169 91.605);
+  --color-amber-950: oklch(96.2% 0.059 95.617);
+  --color-red-50: oklch(25.8% 0.092 26.042);
+}
+
+/* Cores do React Flow presas ao tema (os valores acima já mudam com ele). */
+.react-flow {
+  --xy-background-color: var(--color-slate-50);
+  --xy-background-pattern-color: var(--color-slate-300);
+  --xy-edge-stroke: var(--color-slate-400);
+  --xy-edge-stroke-selected: var(--color-slate-700);
+  --xy-connectionline-stroke: var(--color-slate-500);
+}
+
+.react-flow__edge-textbg {
+  fill: var(--color-slate-50);
+}
+
+.react-flow__edge-text {
+  font-size: 11px;
+  font-weight: 500;
+  fill: var(--color-slate-600);
+}
+
+/* Busca: o que não casa fica esmaecido. */
+.react-flow__node.dimmed,
+.react-flow__edge.dimmed {
+  opacity: 0.2;
+  transition: opacity 150ms;
+}
+
+/* Fluxo: sinal que percorre as conexões. */
+.flow-signal {
+  fill: var(--color-indigo-500);
+  filter: drop-shadow(0 0 3px var(--color-indigo-400));
+  pointer-events: none;
+}
+.flow-signal-async {
+  fill: var(--color-amber-500);
+  filter: drop-shadow(0 0 3px var(--color-amber-400));
+}
+
+/* Espaço / Ctrl+Espaço armados (pan e zoom estilo Krita, com caneta ou mouse). */
+.tablet-pan,
+.tablet-pan * {
+  cursor: grab !important;
+}
+.tablet-zoom,
+.tablet-zoom * {
+  cursor: zoom-in !important;
+}
+
+/* Laser: brilho no traço. */
+.laser-glow {
+  filter: drop-shadow(0 0 4px rgb(239 68 68 / 0.8));
+}
