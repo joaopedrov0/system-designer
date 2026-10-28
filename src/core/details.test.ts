@@ -6,6 +6,7 @@ import {
   createScenario,
   reverseConnection,
   setComponentExpanded,
+  updateComponent,
   updateComponentDetails,
   updateConnection,
 } from './commands'
@@ -32,15 +33,38 @@ describe('addDetailItem', () => {
     ])
   })
 
-  it('ids são únicos entre seções do mesmo componente', () => {
+  it('ids são únicos entre seções do mesmo componente (ex.: depois de mudar o tipo)', () => {
     const { scenario, api } = apiWithClient()
-    const a = addDetailItem(scenario, api, 'topics', { name: 'pedidos' })
-    const b = addDetailItem(a.scenario, api, 'entities', { name: 'pedidos' })
+    const queue = updateComponent(scenario, api, { kind: 'queue' })
+    const a = addDetailItem(queue, api, 'topics', { name: 'pedidos' })
+    const db = updateComponent(a.scenario, api, { kind: 'database' })
+    const b = addDetailItem(db, api, 'entities', { name: 'pedidos' })
     expect(b.id).toBe('pedidos-2')
+  })
+
+  it('só aceita as seções oferecidas pelo tipo do componente', () => {
+    const { scenario, api } = apiWithClient()
+    expect(() => addDetailItem(scenario, api, 'models', { name: 'x' })).toThrow(
+      'Um componente do tipo "Servidor" não tem models. Seções disponíveis: routes, env.',
+    )
   })
 })
 
 describe('updateComponentDetails', () => {
+  it('variável secreta nunca guarda valor', () => {
+    const { scenario, api } = apiWithClient()
+    const s = updateComponentDetails(scenario, api, {
+      env: [
+        { key: 'TOKEN', value: 'abc', secret: true },
+        { key: 'PORT', value: '3000' },
+      ],
+    })
+    expect(s.components[1].details?.env).toEqual([
+      { key: 'TOKEN', secret: true },
+      { key: 'PORT', value: '3000' },
+    ])
+  })
+
   it('remove seções vazias e o objeto details quando tudo fica vazio', () => {
     const { scenario, api } = apiWithClient()
     const withRoute = addDetailItem(scenario, api, 'routes', { method: 'GET', path: '/' }).scenario

@@ -158,6 +158,70 @@ describe('servidor MCP', () => {
     expect(readFileSync(file, 'utf8')).toBe(before)
   })
 
+  it('achados do teste com agente: segredo, seção por tipo, duplicata, notas', async () => {
+    const { server, call } = client(file)
+    await call('create_scenario', { name: 'Loja' })
+    expect((await call('add_component', { kind: 'server', name: 'API' })).text).toBe(
+      'Componente criado com id "api" (Servidor).',
+    )
+    await call('add_component', { kind: 'database', name: 'DB' })
+
+    // Segredo informado com valor: o valor é descartado.
+    await call('set_component_details', {
+      componentId: 'api',
+      env: [{ key: 'TOKEN', value: 'abc', secret: true }],
+    })
+    expect(readFileSync(file, 'utf8')).not.toContain('abc')
+
+    // Seção que o tipo não oferece, e campo desconhecido no item.
+    expect(
+      await call('add_detail_item', { componentId: 'api', section: 'models', item: { name: 'x' } }),
+    ).toMatchObject({ isError: true, text: expect.stringContaining('não tem models') })
+    expect(
+      await call('add_detail_item', {
+        componentId: 'api',
+        section: 'routes',
+        item: { method: 'GET', path: '/', verbo: 'x' },
+      }),
+    ).toMatchObject({ isError: true })
+    const list = await server.handle({ jsonrpc: '2.0', id: 99, method: 'tools/list' })
+    const tools = (
+      list!.result as { tools: { name: string; inputSchema: Record<string, unknown> }[] }
+    ).tools
+    const detail = tools.find((t) => t.name === 'add_detail_item')!.inputSchema
+    expect(detail.type).toBe('object')
+    expect(JSON.stringify(detail)).toContain('"method"')
+
+    // Conexão repetida (mesma origem, destino e protocolo) é recusada.
+    expect((await call('connect', { source: 'api', target: 'db', protocol: 'sql' })).text).toBe(
+      'Conexão criada com id "api-db".',
+    )
+    expect(await call('connect', { source: 'api', target: 'db', protocol: 'sql' })).toEqual({
+      isError: true,
+      text: 'Já existe a conexão "api-db" de "api" para "db" (sql). Use update_connection para alterá-la.',
+    })
+    // Outro protocolo entre o mesmo par é outra conexão.
+    expect(await call('connect', { source: 'api', target: 'db', protocol: 'event' })).toMatchObject(
+      {
+        isError: false,
+      },
+    )
+
+    // Notas: abaixo do diagrama, lado a lado, também depois do auto_layout.
+    await call('add_note', { text: 'a' })
+    await call('add_note', { text: 'b' })
+    const overlap = () => {
+      const s = read()
+      const [n1, n2] = s.notes
+      const bottom = Math.max(...s.components.map((c) => c.layout.y + 58))
+      expect(n1.layout.y).toBeGreaterThan(bottom)
+      expect(Math.abs(n1.layout.x - n2.layout.x)).toBeGreaterThanOrEqual(180)
+    }
+    overlap()
+    expect((await call('auto_layout')).text).toMatch(/2 componentes, 0 grupos e 2 notas abaixo/)
+    overlap()
+  })
+
   it('cada chamada relê o arquivo (mudanças do editor no meio são mantidas)', async () => {
     const { call } = client(file)
     await call('create_scenario', { name: 'Loja' })

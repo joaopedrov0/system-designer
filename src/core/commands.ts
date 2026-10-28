@@ -15,6 +15,7 @@ import type {
   ComponentKind,
   Connection,
   Entity,
+  EnvVar,
   Group,
   Note,
   Point,
@@ -403,6 +404,12 @@ export function addDetailItem<S extends ItemSection>(
   item: NewDetailItem[S],
 ): Created {
   const c = findComponent(s, componentId)
+  const def = componentCatalog[c.kind]
+  if (!def.sections.includes(section)) {
+    throw new CommandError(
+      `Um componente do tipo "${def.label}" não tem ${section}. Seções disponíveis: ${def.sections.join(', ') || 'nenhuma'}.`,
+    )
+  }
   const base =
     section === 'routes'
       ? `${(item as NewDetailItem['routes']).method} ${(item as NewDetailItem['routes']).path}`
@@ -424,6 +431,15 @@ export function updateComponentDetails(
 ): Scenario {
   const c = findComponent(s, componentId)
   const merged: Record<string, unknown> = { ...c.details, ...patch }
+  // Segredos nunca guardam valor, venha de onde vier (UI, import, agente).
+  if (Array.isArray(merged.env)) {
+    merged.env = (merged.env as EnvVar[]).map((e) => {
+      if (!e?.secret || e.value === undefined) return e
+      const rest = { ...e }
+      delete rest.value
+      return rest
+    })
+  }
   for (const [key, value] of Object.entries(merged)) {
     const empty =
       value === undefined ||

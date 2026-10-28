@@ -70,7 +70,34 @@ function nextFreePosition(s: Scenario): Point {
   return { x: rightmost.layout.x + GAP_X, y: rightmost.layout.y }
 }
 
-const created = (what: string, id: string) => `${what} criado(a) com id "${id}".`
+const NOTE = { w: 180, h: 100 }
+const NOTE_GAP = 40
+
+/** Caixa que envolve componentes e grupos (as notas ficam fora: são posicionadas depois). */
+function diagramBounds(s: Scenario) {
+  const boxes = [
+    ...s.components.map((c) => ({ x: c.layout.x, y: c.layout.y, ...NODE })),
+    ...s.groups.map((g) => ({
+      x: g.layout.x,
+      y: g.layout.y,
+      width: g.layout.w,
+      height: g.layout.h,
+    })),
+  ]
+  if (boxes.length === 0) return undefined
+  const x = Math.min(...boxes.map((b) => b.x))
+  const y = Math.min(...boxes.map((b) => b.y))
+  const right = Math.max(...boxes.map((b) => b.x + b.width))
+  const bottom = Math.max(...boxes.map((b) => b.y + b.height))
+  return { x, y, w: right - x, h: bottom - y }
+}
+
+/** Posição da n-ésima nota: numa fileira logo abaixo do diagrama, sem sobrepor. */
+function notePosition(s: Scenario, index: number): Point {
+  const b = diagramBounds(s)
+  const origin = b ? { x: b.x, y: b.y + b.h + 80 } : { x: 0, y: 0 }
+  return { x: origin.x + index * (NOTE.w + NOTE_GAP), y: origin.y }
+}
 
 const kind = z
   .enum(COMPONENT_KINDS)
@@ -86,7 +113,7 @@ const itemSchemas = {
   entities: EntitySchema.omit({ id: true }),
   models: ModelSchema.omit({ id: true }),
   topics: TopicSchema.omit({ id: true }),
-} satisfies Record<ItemSection, z.ZodType>
+} satisfies Record<ItemSection, z.ZodObject>
 
 export const operations: Operation[] = [
   define({
@@ -149,7 +176,8 @@ export const operations: Operation[] = [
       const scenario = input.tags
         ? updateComponent(r.scenario, r.id, { tags: input.tags })
         : r.scenario
-      return { scenario, text: created(componentCatalog[input.kind].label, r.id) }
+      const label = componentCatalog[input.kind].label
+      return { scenario, text: `Componente criado com id "${r.id}" (${label}).` }
     },
   }),
   define({
@@ -205,9 +233,18 @@ export const operations: Operation[] = [
       async: z.boolean().optional(),
     }),
     run: (s, { async, ...input }) => {
+      const same = s.connections.find(
+        (c) =>
+          c.source === input.source && c.target === input.target && c.protocol === input.protocol,
+      )
+      if (same) {
+        throw new Error(
+          `Já existe a conexão "${same.id}" de "${input.source}" para "${input.target}"${input.protocol ? ` (${input.protocol})` : ''}. Use update_connection para alterá-la.`,
+        )
+      }
       const r = connect(s, input)
       const scenario = async ? updateConnection(r.scenario, r.id, { async }) : r.scenario
-      return { scenario, text: created('Conexão', r.id) }
+      return { scenario, text: `Conexão criada com id "${r.id}".` }
     },
   }),
   define({
@@ -238,15 +275,26 @@ export const operations: Operation[] = [
   }),
   define({
     name: 'add_detail_item',
-    description: `Acrescenta um item de detalhe a um componente (complexidade progressiva). Formatos de item: routes {method: ${HTTP_METHODS.join('|')}, path, description?}; entities {name, fields?: [{name, type?}]}; models {name, purpose?}; topics {name}. Devolve o id do item (usado em "uses" das conexões).`,
+    description: `Acrescenta um item de detalhe a um componente (complexidade progressiva). Cada tipo só aceita algumas seções (veja list_component_kinds). Formatos de item: routes {method: ${HTTP_METHODS.join('|')}, path, description?}; entities {name, fields?: [{name, type?}]}; models {name, purpose?}; topics {name}. Devolve o id do item (usado em "uses" das conexões).`,
+    // A raiz precisa ser um objeto simples (clientes MCP recusam anyOf no topo); o item
+    // é a união dos formatos, e o formato certo para a seção é conferido ao executar.
     input: z.object({
       componentId: z.string(),
       section: z.enum(ITEM_SECTIONS),
-      item: z.record(z.string(), z.unknown()),
+      item: z.union([
+        itemSchemas.routes.strict(),
+        itemSchemas.entities.strict(),
+        itemSchemas.models.strict(),
+        itemSchemas.topics.strict(),
+      ]),
     }),
     run: (s, { componentId, section, item }) => {
-      const parsed = itemSchemas[section].parse(item) as NewDetailItem[typeof section]
-      const r = addDetailItem(s, componentId, section, parsed)
+      const parsed = itemSchemas[section].strict().safeParse(item)
+      if (!parsed.success) {
+        throw new Error(`Item inválido para ${section}:
+${z.prettifyError(parsed.error)}`)
+      }
+      const r = addDetailItem(s, componentId, section, parsed.data as NewDetailItem[typeof section])
       return { scenario: r.scenario, text: `Item criado em ${section} com id "${r.id}".` }
     },
   }),
@@ -306,7 +354,7 @@ export const operations: Operation[] = [
           members.map((c) => ({ id: c.id, x: c.layout.x, y: c.layout.y, groupId: r.id })),
         )
       }
-      return { scenario, text: created('Grupo', r.id) }
+      return { scenario, text: `Grupo criado com id "${r.id}".` }
     },
   }),
   define({
@@ -333,15 +381,13 @@ export const operations: Operation[] = [
   }),
   define({
     name: 'add_note',
-    description: 'Adiciona uma nota de texto livre ao canvas.',
+    description:
+      'Adiciona uma nota de texto livre ao canvas. Sem x/y, entra numa fileira logo abaixo do diagrama (auto_layout também reposiciona as notas ali).',
     input: z.object({ text: z.string(), x: z.number().optional(), y: z.number().optional() }),
     run: (s, { text, x, y }) => {
-      const auto = nextFreePosition(s)
-      const r = addNote(s, {
-        text,
-        layout: { x: x ?? auto.x, y: y ?? auto.y + 200, w: 180, h: 100 },
-      })
-      return { scenario: r.scenario, text: created('Nota', r.id) }
+      const auto = notePosition(s, s.notes.length)
+      const r = addNote(s, { text, layout: { x: x ?? auto.x, y: y ?? auto.y, ...NOTE } })
+      return { scenario: r.scenario, text: `Nota criada com id "${r.id}".` }
     },
   }),
   define({
@@ -390,14 +436,23 @@ export const operations: Operation[] = [
   define({
     name: 'auto_layout',
     description:
-      'Organiza o diagrama em camadas da esquerda para a direita, seguindo as conexões (o mesmo que o botão "Organizar"). Bom depois de adicionar vários componentes.',
+      'Organiza o diagrama em camadas da esquerda para a direita, seguindo as conexões (o mesmo que o botão "Organizar"), e põe as notas numa fileira abaixo dele. Bom depois de adicionar vários componentes.',
     input: z.object({}),
     run: async (s) => {
       const { positions, sizes } = await computeLayout(s, (id) => {
         const g = s.groups.find((g) => g.id === id)
         return g ? { width: g.layout.w, height: g.layout.h } : NODE
       })
-      return { scenario: applyLayout(s, positions, sizes), text: 'Diagrama organizado.' }
+      const laidOut = applyLayout(s, positions, sizes)
+      const notes: Record<string, Point> = {}
+      laidOut.notes.forEach((n, i) => (notes[n.id] = notePosition(laidOut, i)))
+      const scenario = applyLayout(laidOut, notes)
+      const b = diagramBounds(scenario)
+      const size = b ? ` Área ocupada: ${Math.round(b.w)} x ${Math.round(b.h)} (sem as notas).` : ''
+      return {
+        scenario,
+        text: `Diagrama organizado: ${s.components.length} componentes, ${s.groups.length} grupos e ${s.notes.length} notas abaixo.${size}`,
+      }
     },
   }),
 ]
