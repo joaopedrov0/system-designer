@@ -1,4 +1,4 @@
-import { Handle, Position, type Node, type NodeProps } from '@xyflow/react'
+import { Handle, Position, useConnection, type Node, type NodeProps } from '@xyflow/react'
 import { AppWindow, KeyRound, Table2 } from 'lucide-react'
 import { memo } from 'react'
 import type { Entity, Screen } from '../../core'

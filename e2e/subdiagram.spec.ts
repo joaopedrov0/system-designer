@@ -135,6 +135,8 @@ test('ER: chave estrangeira liga as tabelas sozinha, com PK/FK no nó e pé de g
   // Editar o campo em texto mantém a FK.
   const orders = page.getByLabel('Campos').last()
   await expect(orders).toHaveValue('id: uuid pk, user_id: uuid fk users.id')
+})
+
 test('banco: o diagrama interno vem antes da lista de tabelas no inspector', async ({ page }) => {
   await open(page, 'db')
   await page.getByRole('button', { name: /Diagrama ER/ }).click()
