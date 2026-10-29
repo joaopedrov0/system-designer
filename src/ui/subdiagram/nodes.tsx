@@ -1,5 +1,5 @@
-import { Handle, Position, useConnection, type Node, type NodeProps } from '@xyflow/react'
-import { AppWindow, Table2 } from 'lucide-react'
+import { Handle, Position, type Node, type NodeProps } from '@xyflow/react'
+import { AppWindow, KeyRound, Table2 } from 'lucide-react'
 import { memo } from 'react'
 import type { Entity, Screen } from '../../core'
 import { SUB_NODE_WIDTH } from './sizes'
@@ -71,7 +71,26 @@ export const EntityNode = memo(function EntityNode({ data, selected }: NodeProps
         <ul className="px-2.5 py-1">
           {e.fields.map((f, i) => (
             <li key={i} className="flex justify-between gap-2 font-mono text-[10px] leading-4">
-              <span className="truncate text-slate-700">{f.name}</span>
+              <span className="flex min-w-0 items-center gap-1">
+                {f.pk && (
+                  <KeyRound
+                    size={9}
+                    className="shrink-0 text-amber-500"
+                    aria-label="chave primária"
+                  />
+                )}
+                {f.fk && (
+                  <span
+                    className="shrink-0 rounded-sm bg-sky-100 px-0.5 text-[8px] leading-3 font-semibold text-sky-700 dark:bg-sky-950 dark:text-sky-300"
+                    title={`FK → ${f.fk.entity}${f.fk.field ? `.${f.fk.field}` : ''}`}
+                  >
+                    FK
+                  </span>
+                )}
+                <span className={`truncate ${f.pk ? 'font-semibold' : ''} text-slate-700`}>
+                  {f.name}
+                </span>
+              </span>
               {f.type && <span className="shrink-0 text-slate-400">{f.type}</span>}
             </li>
           ))}

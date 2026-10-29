@@ -411,8 +411,10 @@ function ItemEditor(props: {
         <Field label="Campos">
           <CommitInput
             value={formatFields(node as Entity)}
-            placeholder="id: uuid, email: text"
-            onCommit={(text) => save(withFields(node as Entity, parseFields(text)))}
+            placeholder="id: uuid pk, user_id: uuid fk users.id"
+            onCommit={(text) =>
+              save(withFields(node as Entity, parseFields(text, sub.nodes as Entity[])))
+            }
           />
         </Field>
       )}

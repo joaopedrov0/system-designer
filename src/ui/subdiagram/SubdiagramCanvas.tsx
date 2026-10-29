@@ -11,6 +11,7 @@ import {
 import { useEffect, useState } from 'react'
 import {
   defaultNodePosition,
+  derivedRelations,
   subdiagramOf,
   type Component,
   type Point,
@@ -36,8 +37,9 @@ function sidesFor(a: Point, b: Point) {
   return dy >= 0 ? { source: 'bottom', target: 'top' } : { source: 'top', target: 'bottom' }
 }
 
+// A cardinalidade aparece nas pontas (pé de galinha); no texto da linha fica só o rótulo.
 function linkText(l: SubdiagramLink): string | undefined {
-  return [l.cardinality, l.label].filter(Boolean).join(' · ') || undefined
+  return l.label || undefined
 }
 
 function toNodes(c: Component, selection: SubSelection): SubFlowNode[] {
@@ -90,7 +92,11 @@ export default function SubdiagramCanvas(props: {
   }, [count, fitKey, fitView])
 
   const positions = new Map(nodes.map((n) => [n.id, n.position]))
-  const sided = sub.links.map((l) => ({
+  // Relacionamentos de FK são calculados na hora (nunca guardados); só o ER os tem.
+  const derived = sub.def.directed ? [] : derivedRelations(component.details ?? {})
+  const derivedIds = new Set(derived.map((r) => r.id))
+  const allLinks: SubdiagramLink[] = [...sub.links, ...derived]
+  const sided = allLinks.map((l) => ({
     ...l,
     sides: sidesFor(positions.get(l.from) ?? { x: 0, y: 0 }, positions.get(l.to) ?? { x: 0, y: 0 }),
   }))
@@ -103,7 +109,7 @@ export default function SubdiagramCanvas(props: {
       sourceHandle: sides.source,
       targetHandle: sides.target,
       type: 'lane',
-      data: { ports: ports.get(l.id) },
+      data: { ports: ports.get(l.id), cardinality: sub.def.directed ? undefined : l.cardinality },
       label: linkText(l),
       markerEnd: sub.def.directed
         ? { type: MarkerType.ArrowClosed, width: 16, height: 16, color: 'var(--color-slate-400)' }
@@ -134,7 +140,7 @@ export default function SubdiagramCanvas(props: {
         )
       }
       onNodeClick={(_, n) => onSelect({ type: 'node', id: n.id })}
-      onEdgeClick={(_, e) => onSelect({ type: 'link', id: e.id })}
+      onEdgeClick={(_, e) => onSelect(derivedIds.has(e.id) ? null : { type: 'link', id: e.id })}
       onPaneClick={() => onSelect(null)}
       // A exclusão é tratada pelo SubdiagramSection, que isola o teclado do canvas principal.
       deleteKeyCode={null}

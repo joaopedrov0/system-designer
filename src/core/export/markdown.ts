@@ -1,11 +1,52 @@
 import { componentCatalog, detailSectionInfo, protocolLabels } from '../catalog'
 import { detailItems } from '../details'
-import type { Component, Connection, Scenario } from '../model'
+import { derivedRelations, junctionTables } from '../er'
+import type { Component, Connection, Entity, Scenario } from '../model'
 import { toMermaid } from './mermaid'
 
 /** Célula de tabela Markdown: sem quebras de linha nem `|` soltos. */
 function cell(value: string | undefined): string {
   return (value ?? '').replace(/\|/g, '\\|').replace(/\r?\n/g, ' ').trim()
+}
+
+type ErRelation = { from: string; to: string; cardinality?: string; label?: string }
+
+/** Campo com suas marcas: "id (uuid, PK)", "user_id (uuid, FK → users.id)". */
+function fieldText(f: NonNullable<Entity['fields']>[number]): string {
+  const marks = [
+    f.type,
+    f.pk && 'PK',
+    f.fk && `FK → ${f.fk.entity}${f.fk.field ? `.${f.fk.field}` : ''}`,
+    f.unique && 'único',
+    f.nullable && 'opcional',
+  ].filter(Boolean)
+  return marks.length ? `${f.name} (${marks.join(', ')})` : f.name
+}
+
+const MERMAID_ER: Record<string, string> = { '1:1': '||--||', '1:N': '||--o{', 'N:N': '}o--o{' }
+
+/** Bloco Mermaid `erDiagram` do banco: tabelas com PK/FK e os relacionamentos. */
+function erDiagram(entities: Entity[], relations: ErRelation[]): string[] {
+  const name = (id: string) => entities.find((e) => e.id === id)?.name ?? id
+  const ident = (text: string) => text.replace(/[^A-Za-z0-9_]/g, '_') || '_'
+  const lines = ['```mermaid', 'erDiagram']
+  for (const e of entities) {
+    if (!e.fields?.length) continue
+    lines.push(`  ${ident(e.name)} {`)
+    for (const f of e.fields) {
+      const keys = [f.pk && 'PK', f.fk && 'FK', f.unique && 'UK'].filter(Boolean).join(',')
+      lines.push(`    ${ident(f.type ?? 'campo')} ${ident(f.name)}${keys ? ` ${keys}` : ''}`)
+    }
+    lines.push('  }')
+  }
+  for (const r of relations) {
+    const line = MERMAID_ER[r.cardinality ?? ''] ?? '||--o{'
+    lines.push(
+      `  ${ident(name(r.from))} ${line} ${ident(name(r.to))} : "${(r.label ?? '').replace(/"/g, "'")}"`,
+    )
+  }
+  lines.push('```')
+  return lines
 }
 
 function componentSection(s: Scenario, c: Component): string[] {
@@ -33,7 +74,7 @@ function componentSection(s: Scenario, c: Component): string[] {
   if (d.entities?.length) {
     lines.push(`**${detailSectionInfo.entities.label}**`, '')
     for (const e of d.entities) {
-      const fields = (e.fields ?? []).map((f) => (f.type ? `${f.name} (${f.type})` : f.name))
+      const fields = (e.fields ?? []).map(fieldText)
       lines.push(`- ${e.name} \`${e.id}\`${fields.length ? `: ${fields.join(', ')}` : ''}`)
     }
     lines.push('')
@@ -68,14 +109,22 @@ function componentSection(s: Scenario, c: Component): string[] {
     }
     lines.push('')
   }
-  if (d.relations?.length) {
+  // Relacionamentos manuais + os deduzidos das chaves estrangeiras.
+  const relations = [...(d.relations ?? []), ...derivedRelations(d)]
+  if (relations.length) {
     lines.push('**Relacionamentos**', '')
-    for (const r of d.relations) {
+    for (const r of relations) {
       const kind = r.cardinality ? ` ${r.cardinality} ` : ' — '
       const label = r.label ? ` (${r.label})` : ''
       lines.push(`- ${nameOf(d.entities, r.from)}${kind}${nameOf(d.entities, r.to)}${label}`)
     }
+    for (const [id, [a, b]] of junctionTables(d)) {
+      lines.push(
+        `- ${nameOf(d.entities, a)} N:N ${nameOf(d.entities, b)} (via ${nameOf(d.entities, id)})`,
+      )
+    }
     lines.push('')
+    if (d.entities?.length) lines.push(...erDiagram(d.entities, relations), '')
   }
   if (d.env?.length) {
     lines.push(`**${detailSectionInfo.env.label}**`, '')
