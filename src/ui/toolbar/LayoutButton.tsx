@@ -37,7 +37,7 @@ export default function LayoutButton() {
       aria-label="Organizar automaticamente"
       disabled={busy}
       onClick={() => void run()}
-      className="flex items-center gap-1 rounded px-1.5 py-1 text-sm text-slate-600 hover:bg-slate-100 disabled:opacity-50"
+      className="flex items-center gap-1 rounded px-1.5 py-1 text-sm text-slate-600 hover:bg-slate-100 disabled:opacity-50 max-md:min-h-11 max-md:px-3"
     >
       {busy ? <LoaderCircle size={16} className="animate-spin" /> : <LayoutDashboard size={16} />}
       <span className="text-xs">Organizar</span>

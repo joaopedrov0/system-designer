@@ -8,7 +8,9 @@ import { useResolvedTheme, useView } from './store/view'
 import Canvas from './ui/canvas/Canvas'
 import Inspector from './ui/inspector/Inspector'
 import Palette from './ui/palette/Palette'
+import MobileChrome from './ui/mobile/MobileChrome'
 import Toolbar from './ui/toolbar/Toolbar'
+import { useIsMobile } from './ui/useIsMobile'
 
 const repository = new IndexedDbRepository()
 
@@ -20,6 +22,7 @@ export default function App() {
   const notice = useEditor((s) => s.notice)
   const clearNotice = useEditor((s) => s.clearNotice)
 
+  const mobile = useIsMobile()
   const theme = useResolvedTheme()
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark')
@@ -72,10 +75,10 @@ export default function App() {
 
   return (
     <ReactFlowProvider>
-      <div className="flex h-screen flex-col bg-slate-50 text-slate-900">
+      <div className="flex h-dvh flex-col bg-slate-50 text-slate-900">
         <Toolbar />
         <div className="flex min-h-0 flex-1">
-          <Palette />
+          {!mobile && <Palette />}
           <main className="relative min-w-0 flex-1">
             {ready ? (
               <Canvas key={scenarioId} />
@@ -88,7 +91,7 @@ export default function App() {
               <div
                 role="alert"
                 onClick={clearError}
-                className="absolute bottom-4 left-1/2 z-10 max-h-64 max-w-xl -translate-x-1/2 cursor-pointer overflow-y-auto rounded-md bg-red-600 px-4 py-2 text-sm whitespace-pre-line text-white shadow-lg"
+                className="absolute bottom-4 left-1/2 z-40 max-h-64 w-max max-w-[min(36rem,calc(100%-1rem))] -translate-x-1/2 max-md:top-2 max-md:bottom-auto cursor-pointer overflow-y-auto rounded-md bg-red-600 px-4 py-2 text-sm whitespace-pre-line text-white shadow-lg"
               >
                 {lastError}
               </div>
@@ -97,13 +100,14 @@ export default function App() {
               <div
                 role="status"
                 onClick={clearNotice}
-                className="absolute bottom-4 left-1/2 z-10 max-w-xl -translate-x-1/2 cursor-pointer rounded-md bg-slate-800 px-4 py-2 text-sm text-slate-50 shadow-lg"
+                className="absolute bottom-4 left-1/2 z-40 w-max max-w-[min(36rem,calc(100%-1rem))] -translate-x-1/2 max-md:top-2 max-md:bottom-auto cursor-pointer rounded-md bg-slate-800 px-4 py-2 text-sm text-slate-50 shadow-lg"
               >
                 {notice}
               </div>
             )}
+            {mobile && <MobileChrome />}
           </main>
-          <Inspector />
+          {!mobile && <Inspector />}
         </div>
       </div>
     </ReactFlowProvider>

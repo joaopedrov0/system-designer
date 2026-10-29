@@ -39,7 +39,7 @@ function Toggle(props: {
       aria-label={props.label}
       aria-pressed={props.active}
       onClick={props.onClick}
-      className={`flex items-center gap-1 rounded px-1.5 py-1 text-sm ${
+      className={`flex items-center gap-1 rounded px-1.5 py-1 text-sm max-md:min-h-11 max-md:px-3 ${
         props.active ? 'bg-slate-900 text-slate-50' : 'text-slate-600 hover:bg-slate-100'
       }`}
     >

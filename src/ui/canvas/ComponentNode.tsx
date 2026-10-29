@@ -1,4 +1,4 @@
-import { Handle, Position, type Node, type NodeProps } from '@xyflow/react'
+import { Handle, Position, useConnection, type Node, type NodeProps } from '@xyflow/react'
 import { ChevronDown, ChevronRight, Lock } from 'lucide-react'
 import { memo, useState } from 'react'
 import {
@@ -35,6 +35,10 @@ function ComponentNode({ data, selected }: NodeProps<ComponentFlowNode>) {
   const [editing, setEditing] = useState(false)
   const updateComponent = useEditor((s) => s.updateComponent)
   const setComponentExpanded = useEditor((s) => s.setComponentExpanded)
+  // Sem hover no toque: as alças ficam à vista no nó selecionado e, enquanto uma conexão
+  // está sendo feita, em todos (para tocar no destino).
+  const connecting = useConnection((c) => c.inProgress)
+  const showHandles = selected || connecting
 
   const badges = DETAIL_SECTIONS.map((section) => ({
     section,
@@ -86,7 +90,9 @@ function ComponentNode({ data, selected }: NodeProps<ComponentFlowNode>) {
           id={side.id}
           type="source"
           position={side.position}
-          className="!h-2.5 !w-2.5 !border-2 !border-surface !bg-slate-400 opacity-0 transition-opacity group-hover:opacity-100"
+          className={`!h-2.5 !w-2.5 !border-2 !border-surface !bg-slate-400 transition-opacity group-hover:opacity-100 ${
+            showHandles ? 'opacity-100' : 'opacity-0'
+          }`}
         />
       ))}
 

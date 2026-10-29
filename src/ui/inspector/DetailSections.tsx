@@ -113,9 +113,15 @@ export default function DetailSections({ component }: { component: Component }) 
                 <CommitInput
                   aria-label="Campos"
                   value={formatFields(e)}
-                  placeholder="campos: id: uuid, email: text (opcional)"
+                  placeholder="campos: id: uuid pk, user_id: uuid fk users.id (opcional)"
                   onCommit={(text) =>
-                    save({ entities: replace(d.entities!, i, withFields(e, parseFields(text))) })
+                    save({
+                      entities: replace(
+                        d.entities!,
+                        i,
+                        withFields(e, parseFields(text, d.entities)),
+                      ),
+                    })
                   }
                   className={compact}
                 />

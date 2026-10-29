@@ -77,9 +77,19 @@ export const RouteSchema = z.object({
   description: z.string().optional(),
 })
 
+/** Referência de uma chave estrangeira: id da tabela e, opcionalmente, o campo (padrão: a PK dela). */
+export const FieldReferenceSchema = z.object({
+  entity: Id,
+  field: z.string().min(1).optional(),
+})
+
 export const EntityFieldSchema = z.object({
   name: z.string().min(1),
   type: z.string().optional(),
+  pk: z.boolean().optional(),
+  fk: FieldReferenceSchema.optional(),
+  unique: z.boolean().optional(),
+  nullable: z.boolean().optional(),
 })
 
 export const EntitySchema = z.object({

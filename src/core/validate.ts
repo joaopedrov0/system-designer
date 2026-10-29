@@ -1,7 +1,8 @@
 import { componentCatalog } from './catalog'
 import { HOST_KINDS } from './schema'
 import { DETAIL_SECTIONS, detailItems, ITEM_SECTIONS } from './details'
-import type { Component, Scenario } from './model'
+import { referencedField } from './er'
+import type { Component, Entity, Scenario } from './model'
 
 export interface ValidationIssue {
   /** "error": o cenário está inconsistente; "warning": provável descuido. */
@@ -158,6 +159,39 @@ export function validateScenario(s: Scenario): ValidationIssue[] {
   return issues
 }
 
+/** FKs que apontam para tabela ou campo inexistente (erro); tabela sem PK, só se o banco usa PK. */
+function checkForeignKeys(
+  c: Component,
+  entities: Entity[],
+  error: (message: string, ...ids: string[]) => void,
+  warn: (message: string, ...ids: string[]) => void,
+) {
+  for (const e of entities) {
+    for (const f of e.fields ?? []) {
+      if (!f.fk) continue
+      const target = entities.find((x) => x.id === f.fk!.entity)
+      if (!target) {
+        error(
+          `"${c.id}": o campo "${e.id}.${f.name}" referencia a tabela "${f.fk.entity}", que não existe.`,
+          c.id,
+        )
+      } else if (f.fk.field && !referencedField(target, f.fk.field)) {
+        error(
+          `"${c.id}": o campo "${e.id}.${f.name}" referencia "${target.id}.${f.fk.field}", que não existe.`,
+          c.id,
+        )
+      }
+    }
+  }
+  // Só incomoda quem já marca PKs: um banco que nunca usou isso segue sem avisos.
+  const usesPk = entities.some((e) => e.fields?.some((f) => f.pk))
+  if (!usesPk) return
+  for (const e of entities) {
+    if (e.fields?.length && !e.fields.some((f) => f.pk))
+      warn(`"${c.id}": a tabela "${e.id}" não tem chave primária.`, c.id)
+  }
+}
+
 function checkComponent(
   c: Component,
   error: (message: string, ...ids: string[]) => void,
@@ -192,6 +226,7 @@ function checkComponent(
     for (const id of repeated((links ?? []).map((l) => l.id)))
       error(`"${c.id}" tem duas ligações com o id "${id}".`, c.id)
   }
+  checkForeignKeys(c, d.entities ?? [], error, warn)
   for (const key of repeated((d.env ?? []).map((v) => v.key)))
     warn(`"${c.id}" declara a variável "${key}" mais de uma vez.`, c.id)
   for (const v of d.env ?? []) {

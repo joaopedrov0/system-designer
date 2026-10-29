@@ -327,7 +327,7 @@ export const operations: Operation[] = [
   }),
   define({
     name: 'add_detail_item',
-    description: `Acrescenta um item de detalhe a um componente (complexidade progressiva). Cada tipo só aceita algumas seções (veja list_component_kinds). Formatos de item: routes {method: ${HTTP_METHODS.join('|')}, path, description?}; entities {name, fields?: [{name, type?}]}; models {name, purpose?}; topics {name}; screens {name, path?, description?} (telas de um cliente). Devolve o id do item (usado em "uses" das conexões e em link_items).`,
+    description: `Acrescenta um item de detalhe a um componente (complexidade progressiva). Cada tipo só aceita algumas seções (veja list_component_kinds). Formatos de item: routes {method: ${HTTP_METHODS.join('|')}, path, description?}; entities {name, fields?: [{name, type?, pk?, unique?, nullable?, fk?: {entity: id da tabela, field?: campo}}]} (declare pk e fk a partir de migrations/ORM: o diagrama ER liga as tabelas sozinho pelas fk, sem link_items); models {name, purpose?}; topics {name}; screens {name, path?, description?} (telas de um cliente). Devolve o id do item (usado em "uses" das conexões e em link_items).`,
     // A raiz precisa ser um objeto simples (clientes MCP recusam anyOf no topo); o item
     // é a união dos formatos, e o formato certo para a seção é conferido ao executar.
     input: z.object({
@@ -521,7 +521,7 @@ operations.push(
   define({
     name: 'link_items',
     description:
-      'Liga dois itens no diagrama interno de um componente. Cliente: navegação da tela "from" para a tela "to" (ids de screens; label = ação, ex.: "entrar"). Banco de dados: relacionamento entre as tabelas "from" e "to" (ids de entities) com cardinality 1:1, 1:N ou N:N (lado "from" é o primeiro). Crie os itens antes com add_detail_item.',
+      'Liga dois itens no diagrama interno de um componente. Cliente: navegação da tela "from" para a tela "to" (ids de screens; label = ação, ex.: "entrar"). Banco de dados: relacionamento entre as tabelas "from" e "to" (ids de entities) com cardinality 1:1, 1:N ou N:N (lado "from" é o primeiro). Chaves estrangeiras (fk nos campos) já geram o relacionamento sozinhas: use link_items só para o que não é FK. Crie os itens antes com add_detail_item.',
     input: z.object({
       componentId: z.string(),
       from: z.string(),
