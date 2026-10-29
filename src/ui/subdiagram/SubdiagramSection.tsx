@@ -11,6 +11,7 @@ import {
   type Screen,
 } from '../../core'
 import { useEditor } from '../../store/editor'
+import { useIsMobile } from '../useIsMobile'
 import { useView } from '../../store/view'
 import { CommitInput, Field, Select } from '../fields'
 import { formatFields, parseFields, withFields } from '../inspector/entityFields'
@@ -28,6 +29,7 @@ const isTyping = (t: EventTarget) =>
  */
 export default function SubdiagramSection({ component }: { component: Component }) {
   const sub = subdiagramOf(component)
+  const mobile = useIsMobile()
   const [open, setOpen] = useState(() => (sub?.links.length ?? 0) > 0)
   const [expanded, setExpanded] = useState(false)
   const [rawSelection, setSelection] = useState<SubSelection>(null)
@@ -45,7 +47,11 @@ export default function SubdiagramSection({ component }: { component: Component 
     return (
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          setOpen(true)
+          // No celular o mini canvas não cabe na folha de detalhes: abre direto em tela cheia.
+          if (mobile) setExpanded(true)
+        }}
         className="flex w-full items-center gap-2 rounded-md border border-dashed border-slate-300 px-3 py-2 text-left text-xs text-slate-600 hover:border-slate-400 hover:bg-slate-50"
       >
         <Workflow size={14} className="shrink-0 text-slate-400" />
@@ -93,6 +99,15 @@ export default function SubdiagramSection({ component }: { component: Component 
         <p className="rounded-md bg-slate-50 px-2 py-3 text-center text-xs text-slate-500">
           Aberto em tela cheia.
         </p>
+      ) : mobile ? (
+        <button
+          type="button"
+          aria-label="Expandir diagrama"
+          onClick={() => setExpanded(true)}
+          className="flex min-h-11 w-full items-center justify-center gap-2 rounded-md border border-slate-300 px-3 text-sm text-slate-700"
+        >
+          <Maximize2 size={14} /> Abrir em tela cheia
+        </button>
       ) : (
         body(false)
       )}
@@ -117,13 +132,13 @@ function Overlay(props: { title: string; onClose: () => void; children: ReactNod
   }, [onClose])
   return (
     <div
-      className="fixed inset-0 z-50 flex bg-slate-900/40 p-4 sm:p-8"
+      className="fixed inset-x-0 top-0 z-50 flex h-dvh bg-slate-900/40 sm:p-8"
       onMouseDown={(e) => e.target === e.currentTarget && onClose()}
     >
       <div
         role="dialog"
         aria-label={props.title}
-        className="flex min-h-0 w-full flex-col overflow-hidden rounded-lg border border-slate-200 bg-surface shadow-xl"
+        className="flex min-h-0 w-full flex-col overflow-hidden border border-slate-200 bg-surface pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] shadow-xl sm:rounded-lg sm:pt-0 sm:pb-0"
       >
         <div className="flex items-center justify-between border-b border-slate-200 px-4 py-2">
           <h2 className="text-sm font-semibold text-slate-800">{props.title}</h2>
@@ -131,7 +146,7 @@ function Overlay(props: { title: string; onClose: () => void; children: ReactNod
             type="button"
             aria-label="Fechar"
             onClick={onClose}
-            className="rounded p-1 text-slate-500 hover:bg-slate-100"
+            className="rounded p-1 text-slate-500 hover:bg-slate-100 max-md:flex max-md:min-h-11 max-md:min-w-11 max-md:items-center max-md:justify-center"
           >
             <X size={16} />
           </button>
@@ -226,10 +241,14 @@ function Workspace(props: {
   }, [])
 
   const button =
-    'flex items-center gap-1 rounded px-1.5 py-1 text-xs text-slate-600 hover:bg-slate-100 disabled:opacity-40'
+    'flex items-center gap-1 rounded px-1.5 py-1 text-xs text-slate-600 hover:bg-slate-100 disabled:opacity-40 max-md:min-h-11 max-md:px-3 max-md:text-sm'
   return (
-    <div ref={root} className={roomy ? 'flex h-full' : 'space-y-2'} data-testid="subdiagram">
-      <div className={roomy ? 'flex min-w-0 flex-1 flex-col' : 'space-y-1'}>
+    <div
+      ref={root}
+      className={roomy ? 'flex h-full max-md:flex-col' : 'space-y-2'}
+      data-testid="subdiagram"
+    >
+      <div className={roomy ? 'flex min-h-0 min-w-0 flex-1 flex-col' : 'space-y-1'}>
         <div
           className={`flex items-center gap-1 ${roomy ? 'border-b border-slate-200 px-2 py-1' : ''}`}
         >
@@ -279,7 +298,13 @@ function Workspace(props: {
         )}
       </div>
       {(selection || roomy) && (
-        <div className={roomy ? 'w-72 shrink-0 overflow-y-auto border-l border-slate-200 p-3' : ''}>
+        <div
+          className={
+            roomy
+              ? 'w-72 shrink-0 overflow-y-auto border-l border-slate-200 p-3 max-md:max-h-[40%] max-md:w-full max-md:border-t max-md:border-l-0'
+              : ''
+          }
+        >
           {selection ? (
             <ItemEditor component={component} selection={selection} onRemove={removeSelected} />
           ) : (

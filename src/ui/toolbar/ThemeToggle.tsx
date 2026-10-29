@@ -25,7 +25,7 @@ export default function ThemeToggle() {
       title={label}
       aria-label={label}
       onClick={() => setTheme(next[theme])}
-      className="rounded p-1.5 text-slate-600 hover:bg-slate-100"
+      className="rounded p-1.5 text-slate-600 hover:bg-slate-100 max-md:flex max-md:min-h-11 max-md:min-w-11 max-md:items-center max-md:justify-center"
     >
       <Icon size={16} />
     </button>

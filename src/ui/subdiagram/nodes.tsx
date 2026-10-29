@@ -16,14 +16,18 @@ const sides = [
 ]
 
 // Alças só aparecem no hover, como no canvas principal; arrastar de uma cria a ligação.
-function Handles() {
+function Handles({ selected }: { selected: boolean }) {
+  const connecting = useConnection((c) => c.inProgress)
+  const visible = selected || connecting
   return sides.map((side) => (
     <Handle
       key={side.id}
       id={side.id}
       type="source"
       position={side.position}
-      className="!h-2 !w-2 !border-2 !border-surface !bg-slate-400 opacity-0 transition-opacity group-hover:opacity-100"
+      className={`!h-2 !w-2 !border-2 !border-surface !bg-slate-400 transition-opacity group-hover:opacity-100 ${
+        visible ? 'opacity-100' : 'opacity-0'
+      }`}
     />
   ))
 }
@@ -37,7 +41,7 @@ export const ScreenNode = memo(function ScreenNode({ data, selected }: NodeProps
   const s = data.item
   return (
     <div className={`${frame(selected)} px-2.5 py-2`} style={{ width: SUB_NODE_WIDTH.screen }}>
-      <Handles />
+      <Handles selected={selected} />
       <div className="flex items-center gap-1.5">
         <AppWindow size={13} className="shrink-0 text-blue-500" />
         <span className="truncate text-xs font-medium text-slate-900" title={s.name}>
@@ -56,7 +60,7 @@ export const EntityNode = memo(function EntityNode({ data, selected }: NodeProps
   const e = data.item
   return (
     <div className={`${frame(selected)} overflow-hidden`} style={{ width: SUB_NODE_WIDTH.entity }}>
-      <Handles />
+      <Handles selected={selected} />
       <div className="flex items-center gap-1.5 border-b border-slate-200 bg-emerald-50 px-2.5 py-1.5 dark:bg-emerald-950/40">
         <Table2 size={13} className="shrink-0 text-emerald-600" />
         <span className="truncate font-mono text-xs font-semibold text-slate-900" title={e.name}>

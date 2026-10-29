@@ -22,8 +22,8 @@ export default function SearchPanel({ matches }: { matches: Set<string> | null }
   }
 
   return (
-    <Panel position="top-left" className="!m-3">
-      <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-surface p-1 shadow-sm">
+    <Panel position="top-left" className="!m-3 max-md:!w-[calc(100%-1.5rem)]">
+      <div className="flex items-center gap-1 max-md:w-full rounded-lg border border-slate-200 bg-surface p-1 shadow-sm">
         <Search size={14} className="ml-1.5 text-slate-400" />
         <input
           aria-label="Buscar componentes"
@@ -34,13 +34,13 @@ export default function SearchPanel({ matches }: { matches: Set<string> | null }
             if (e.key === 'Enter') focusMatches()
             if (e.key === 'Escape') setSearch({ text: '' })
           }}
-          className="w-56 bg-transparent px-1 py-0.5 text-sm outline-none placeholder:text-slate-400"
+          className="w-56 bg-transparent px-1 py-0.5 text-sm outline-none placeholder:text-slate-400 max-md:w-0 max-md:min-w-0 max-md:flex-1"
         />
         <select
           aria-label="Filtrar por tipo"
           value={search.kind}
           onChange={(e) => setSearch({ kind: e.target.value as ComponentKind | 'all' })}
-          className="rounded bg-slate-50 px-1 py-0.5 text-xs text-slate-600 outline-none"
+          className="rounded bg-slate-50 px-1 py-0.5 text-xs text-slate-600 outline-none max-md:max-w-32"
         >
           {kindOptions.map((o) => (
             <option key={o.value} value={o.value}>
