@@ -36,12 +36,12 @@ const scenario = {
   connections: [{ id: 'app-db', source: 'app', target: 'db' }],
 }
 
-async function open(page: Page, id: string) {
+async function open(page: Page, id: string, data: unknown = scenario) {
   await page.goto('/')
   await page.getByTestId('import-input').setInputFiles({
     name: 'sub.json',
     mimeType: 'application/json',
-    buffer: Buffer.from(JSON.stringify(scenario)),
+    buffer: Buffer.from(JSON.stringify(data)),
   })
   await page.locator(`.react-flow__node[data-id="${id}"]`).click()
 }
@@ -103,4 +103,36 @@ test('banco: diagrama ER começa fechado, abre, cria tabela e expande em tela ch
   await expect(dialog.locator('.react-flow__node')).toHaveCount(3)
   await page.keyboard.press('Escape')
   await expect(dialog).toHaveCount(0)
+})
+
+test('ER: chave estrangeira liga as tabelas sozinha, com PK/FK no nó e pé de galinha', async ({
+  page,
+}) => {
+  const withFk = structuredClone(scenario)
+  withFk.components[1].details = {
+    entities: [
+      { id: 'users', name: 'users', fields: [{ name: 'id', type: 'uuid', pk: true }] },
+      {
+        id: 'orders',
+        name: 'orders',
+        fields: [
+          { name: 'id', type: 'uuid', pk: true },
+          { name: 'user_id', type: 'uuid', fk: { entity: 'users', field: 'id' } },
+        ],
+      },
+    ],
+  } as never
+  await open(page, 'db', withFk)
+  await page.getByRole('button', { name: /Diagrama ER/ }).click()
+  // Nenhum relacionamento desenhado à mão, mas a ligação aparece.
+  await expect(sub(page).locator('.react-flow__edge')).toHaveCount(1)
+  await expect(sub(page).locator('.react-flow__edge-text')).toHaveText('user_id')
+  await expect(sub(page).getByText('FK', { exact: true })).toBeVisible()
+  await expect(sub(page).getByLabel('chave primária')).toHaveCount(2)
+  // Um glifo por ponta: barras no lado "1", três dentes no lado "N".
+  await expect(sub(page).locator('.react-flow__edge path[stroke-width="1.5"]')).toHaveCount(2)
+
+  // Editar o campo em texto mantém a FK.
+  const orders = page.getByLabel('Campos').last()
+  await expect(orders).toHaveValue('id: uuid pk, user_id: uuid fk users.id')
 })
