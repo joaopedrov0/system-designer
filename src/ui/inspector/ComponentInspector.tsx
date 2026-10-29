@@ -5,6 +5,7 @@ import { CatalogIcon } from '../icons'
 import ErrorBoundary from '../ErrorBoundary'
 import SubdiagramSection from '../subdiagram/SubdiagramSection'
 import DetailSections from './DetailSections'
+import InfraSection from './InfraSection'
 import { DeleteButton } from './Inspector'
 
 const kindOptions = componentKindList.map((d) => ({ value: d.kind, label: d.label }))
@@ -57,6 +58,7 @@ export default function ComponentInspector({ id }: { id: string }) {
         />
       </Field>
 
+      <InfraSection component={component} />
       <ErrorBoundary label="Diagrama interno">
         <SubdiagramSection component={component} />
       </ErrorBoundary>

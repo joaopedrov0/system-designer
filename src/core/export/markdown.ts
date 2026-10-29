@@ -2,11 +2,63 @@ import { componentCatalog, detailSectionInfo, protocolLabels } from '../catalog'
 import { detailItems } from '../details'
 import { derivedRelations, junctionTables } from '../er'
 import type { Component, Connection, Entity, Scenario } from '../model'
+import { replicaCount, scenarioLoad, sensorLoad } from '../sizing'
 import { toMermaid } from './mermaid'
 
 /** Célula de tabela Markdown: sem quebras de linha nem `|` soltos. */
 function cell(value: string | undefined): string {
   return (value ?? '').replace(/\|/g, '\\|').replace(/\r?\n/g, ' ').trim()
+}
+
+const num = (n: number) => String(Number(n.toFixed(1)))
+
+const sensorTypeLabels = {
+  camera: 'câmera',
+  environmental: 'sensor ambiental',
+  radar: 'radar',
+  generic: 'sensor',
+} as const
+
+/** Linhas de fato sobre infraestrutura (host, réplicas, hardware, sensor) de um componente. */
+function infraFacts(s: Scenario, c: Component): string[] {
+  const facts: string[] = []
+  const host = c.hostId && s.components.find((x) => x.id === c.hostId)
+  if (c.hostId) facts.push(`- **Roda em:** ${host ? host.name : c.hostId} (\`${c.hostId}\`)`)
+  if (c.replicas) {
+    const { min, max, ephemeral } = c.replicas
+    const range = max !== undefined && max !== min ? `${min}–${max}` : String(min)
+    facts.push(`- **Réplicas:** ${range}${ephemeral ? ' (efêmeras)' : ''}`)
+  }
+  const h = c.hardware
+  if (h) {
+    const parts = [
+      h.cpuCores && `${h.cpuCores} núcleos`,
+      h.memoryGb && `${num(h.memoryGb)} GB de RAM`,
+      h.diskGb && `${num(h.diskGb)} GB de disco`,
+      h.gpu && `GPU ${h.gpu}`,
+      h.os,
+      h.powerWatts && `${num(h.powerWatts)} W`,
+      h.location && `local: ${h.location}`,
+      h.address && `endereço: ${h.address}`,
+    ].filter(Boolean)
+    if (parts.length) facts.push(`- **Hardware:** ${parts.join(', ')}`)
+  }
+  const sn = c.sensor
+  if (sn) {
+    const parts = [
+      sensorTypeLabels[sn.type],
+      sn.resolution,
+      sn.fps && `${num(sn.fps)} fps`,
+      sn.codec,
+      sn.sampleHz && `${num(sn.sampleHz)} amostras/s`,
+      sn.detectionsPerSecond && `${num(sn.detectionsPerSecond)} detecções/s`,
+      sn.readingBytes && `${num(sn.readingBytes)} B por leitura`,
+    ].filter(Boolean)
+    const load = sensorLoad(sn)
+    if (load) parts.push(`${num(load.mbps)} Mbps, ${num(load.gbPerDay)} GB/dia`)
+    facts.push(`- **Sensor:** ${parts.join(', ')}`)
+  }
+  return facts
 }
 
 type ErRelation = { from: string; to: string; cardinality?: string; label?: string }
@@ -59,6 +111,7 @@ function componentSection(s: Scenario, c: Component): string[] {
   const group = c.groupId && s.groups.find((g) => g.id === c.groupId)
   if (group) facts.push(`- **Grupo:** ${group.name}`)
   if (c.tags?.length) facts.push(`- **Tags:** ${c.tags.join(', ')}`)
+  facts.push(...infraFacts(s, c))
   lines.push(...facts, '')
   if (c.description) lines.push(c.description, '')
 
@@ -183,6 +236,18 @@ export function toMarkdown(s: Scenario): string {
     lines.push('| De | | Para | Protocolo | Descrição | Usa | Id |')
     lines.push('| --- | --- | --- | --- | --- | --- | --- |')
     for (const c of s.connections) lines.push(connectionRow(s, c))
+    lines.push('')
+  }
+
+  const load = scenarioLoad(s)
+  if (load) {
+    lines.push('## Carga estimada dos sensores', '')
+    lines.push(
+      `- ${load.sensors} sensor(es) somados: **${num(load.mbps)} Mbps** de banda e **${num(load.gbPerDay)} GB por dia** se tudo for gravado.`,
+    )
+    for (const id of load.unknown) lines.push(`- \`${id}\` não entrou na soma: faltam dados.`)
+    const copies = s.components.filter((c) => c.kind === 'sensor' && replicaCount(c) > 1)
+    if (copies.length) lines.push('- Sensores com réplicas contam uma vez por cópia (mínimo).')
     lines.push('')
   }
 

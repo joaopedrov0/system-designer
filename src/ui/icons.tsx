@@ -1,12 +1,16 @@
 import {
   Box,
   Cog,
+  Cpu,
   Database,
   Globe,
   HardDrive,
   Inbox,
+  Layers,
   Monitor,
   Network,
+  Radio,
+  Router,
   Server,
   Sparkles,
   Zap,
@@ -28,6 +32,10 @@ const icons: Record<string, LucideIcon> = {
   sparkles: Sparkles,
   globe: Globe,
   box: Box,
+  cpu: Cpu,
+  layers: Layers,
+  router: Router,
+  radio: Radio,
 }
 
 export function CatalogIcon({ name, ...props }: { name: string } & LucideProps) {

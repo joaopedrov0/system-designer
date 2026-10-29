@@ -15,6 +15,9 @@ import type {
   GroupSchema,
   NoteSchema,
   PROTOCOLS,
+  HardwareSchema,
+  ReplicasSchema,
+  SensorSchema,
   ScenarioSchema,
 } from './schema'
 
@@ -22,6 +25,9 @@ import type {
 export type ComponentKind = (typeof COMPONENT_KINDS)[number]
 export type Protocol = (typeof PROTOCOLS)[number]
 export type Route = z.infer<typeof RouteSchema>
+export type Hardware = z.infer<typeof HardwareSchema>
+export type Replicas = z.infer<typeof ReplicasSchema>
+export type Sensor = z.infer<typeof SensorSchema>
 export type Entity = z.infer<typeof EntitySchema>
 export type AiModel = z.infer<typeof ModelSchema>
 export type Topic = z.infer<typeof TopicSchema>

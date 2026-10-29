@@ -1,4 +1,5 @@
 import { componentCatalog } from './catalog'
+import { HOST_KINDS } from './schema'
 import { DETAIL_SECTIONS, detailItems, ITEM_SECTIONS } from './details'
 import { referencedField } from './er'
 import type { Component, Entity, Scenario } from './model'
@@ -58,6 +59,8 @@ export function validateScenario(s: Scenario): ValidationIssue[] {
   }
 
   const connected = new Set<string>()
+  // Quem envia dados a alguém (origem de uma conexão, ou qualquer ponta se for de mão dupla).
+  const feeds = new Set<string>()
   const signatures = new Map<string, string>()
   for (const c of s.connections) {
     const source = components.get(c.source)
@@ -67,6 +70,8 @@ export function validateScenario(s: Scenario): ValidationIssue[] {
       error(`A conexão "${c.id}" chega a um componente inexistente: "${c.target}".`, c.id)
     if (c.source === c.target) warn(`A conexão "${c.id}" liga "${c.source}" a ele mesmo.`, c.id)
     connected.add(c.source).add(c.target)
+    feeds.add(c.source)
+    if (c.direction === 'two-way') feeds.add(c.target)
 
     const signature = `${c.source}\u0000${c.target}\u0000${c.protocol ?? ''}`
     const twin = signatures.get(signature)
@@ -87,6 +92,41 @@ export function validateScenario(s: Scenario): ValidationIssue[] {
           c.id,
         )
     }
+  }
+
+  for (const c of s.components) {
+    if (c.hostId) {
+      const host = components.get(c.hostId)
+      if (!host) error(`"${c.id}" roda num host inexistente: "${c.hostId}".`, c.id)
+      else if (!(HOST_KINDS as readonly string[]).includes(host.kind))
+        error(
+          `"${c.id}" roda em "${host.id}", que é ${componentCatalog[host.kind].label} e não hospeda componentes.`,
+          c.id,
+          host.id,
+        )
+      else {
+        // Ciclo: subindo pelos hosts, volta ao próprio componente.
+        const seen = new Set([c.id])
+        for (
+          let h: string | undefined = c.hostId;
+          h && components.has(h);
+          h = components.get(h)!.hostId
+        ) {
+          if (seen.has(h)) {
+            error(`Os hosts formam um ciclo a partir de "${c.id}".`, c.id)
+            break
+          }
+          seen.add(h)
+        }
+      }
+    }
+    if (c.replicas?.max !== undefined && c.replicas.max < c.replicas.min)
+      error(
+        `"${c.id}" tem réplicas com máximo (${c.replicas.max}) menor que o mínimo (${c.replicas.min}).`,
+        c.id,
+      )
+    if (c.kind === 'sensor' && connected.has(c.id) && !feeds.has(c.id))
+      warn(`O sensor "${c.id}" não envia dados a nenhum componente.`, c.id)
   }
 
   if (s.components.length > 1) {

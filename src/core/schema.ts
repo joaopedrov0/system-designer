@@ -14,8 +14,18 @@ export const COMPONENT_KINDS = [
   'storage',
   'ai-provider',
   'external-api',
+  // Infraestrutura física (opcional): onde as coisas rodam e o que gera dados.
+  'host',
+  'vm',
+  'edge-device',
+  'sensor',
   'generic',
 ] as const
+
+/** Tipos que hospedam outros componentes (ver `hostId`). */
+export const HOST_KINDS = ['host', 'vm', 'edge-device'] as const
+
+export const SENSOR_TYPES = ['camera', 'environmental', 'radar', 'generic'] as const
 
 export const PROTOCOLS = [
   'http',
@@ -28,6 +38,14 @@ export const PROTOCOLS = [
   // de arquivos (volumes, discos, pastas compartilhadas).
   'ipc',
   'file',
+  // Dispositivos e sensores.
+  'mqtt',
+  'rtsp',
+  'udp',
+  'modbus',
+  'opcua',
+  'coap',
+  'serial',
   'generic',
 ] as const
 
@@ -139,6 +157,48 @@ export const ComponentDetailsSchema = z.object({
   relations: z.array(RelationSchema).optional(),
 })
 
+// --- Infraestrutura (opcional; ver docs/proposta-ambientes-fisicos.md) ---------
+
+const PositiveNumber = z.number().positive()
+
+/** Capacidade e identificação de um host, VM ou dispositivo de borda. */
+export const HardwareSchema = z.object({
+  cpuCores: z.number().int().positive().optional(),
+  memoryGb: PositiveNumber.optional(),
+  diskGb: PositiveNumber.optional(),
+  gpu: z.string().optional(),
+  os: z.string().optional(),
+  /** Site, rack ou sala: "datacenter SP", "rack 2", "casa". */
+  location: z.string().optional(),
+  /** IP ou hostname. */
+  address: z.string().optional(),
+  powerWatts: PositiveNumber.optional(),
+})
+
+/**
+ * Atributos de um sensor que bastam para estimar banda e armazenamento:
+ * câmera = bitrate; sensor ambiental = amostras/s × bytes por leitura; radar = detecções/s ×
+ * bytes por detecção.
+ */
+export const SensorSchema = z.object({
+  type: z.enum(SENSOR_TYPES),
+  resolution: z.string().optional(),
+  fps: PositiveNumber.optional(),
+  bitrateMbps: PositiveNumber.optional(),
+  codec: z.string().optional(),
+  sampleHz: PositiveNumber.optional(),
+  detectionsPerSecond: PositiveNumber.optional(),
+  readingBytes: PositiveNumber.optional(),
+})
+
+/** Cópias de um componente (contêineres efêmeros, serviços escalados). */
+export const ReplicasSchema = z.object({
+  min: z.number().int().positive(),
+  max: z.number().int().positive().optional(),
+  /** Nasce e morre (job, cron, contêiner efêmero), em vez de serviço contínuo. */
+  ephemeral: z.boolean().optional(),
+})
+
 // --- Elementos do cenário -----------------------------------------------------
 
 export const ComponentLayoutSchema = z.object({
@@ -156,6 +216,11 @@ export const ComponentSchema = z.object({
   technology: z.string().optional(),
   groupId: Id.optional(),
   tags: z.array(z.string()).optional(),
+  /** Id do host, VM ou dispositivo de borda onde este componente roda. */
+  hostId: Id.optional(),
+  replicas: ReplicasSchema.optional(),
+  hardware: HardwareSchema.optional(),
+  sensor: SensorSchema.optional(),
   layout: ComponentLayoutSchema.extend({
     /** Mostra os detalhes listados dentro do nó no canvas. */
     expanded: z.boolean().optional(),

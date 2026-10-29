@@ -46,6 +46,10 @@
               "storage",
               "ai-provider",
               "external-api",
+              "host",
+              "vm",
+              "edge-device",
+              "sensor",
               "generic"
             ]
           },
@@ -68,6 +72,108 @@
             "items": {
               "type": "string"
             }
+          },
+          "hostId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "replicas": {
+            "type": "object",
+            "properties": {
+              "min": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "max": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "ephemeral": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "min"
+            ]
+          },
+          "hardware": {
+            "type": "object",
+            "properties": {
+              "cpuCores": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "memoryGb": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "diskGb": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "gpu": {
+                "type": "string"
+              },
+              "os": {
+                "type": "string"
+              },
+              "location": {
+                "type": "string"
+              },
+              "address": {
+                "type": "string"
+              },
+              "powerWatts": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              }
+            }
+          },
+          "sensor": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "camera",
+                  "environmental",
+                  "radar",
+                  "generic"
+                ]
+              },
+              "resolution": {
+                "type": "string"
+              },
+              "fps": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "bitrateMbps": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "codec": {
+                "type": "string"
+              },
+              "sampleHz": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "detectionsPerSecond": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "readingBytes": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              }
+            },
+            "required": [
+              "type"
+            ]
           },
           "layout": {
             "type": "object",
@@ -426,6 +532,13 @@
               "sdk",
               "ipc",
               "file",
+              "mqtt",
+              "rtsp",
+              "udp",
+              "modbus",
+              "opcua",
+              "coap",
+              "serial",
               "generic"
             ]
           },
