@@ -11,7 +11,14 @@ import {
 import { useEditor } from '../../store/editor'
 import { CatalogIcon } from '../icons'
 
-export type ComponentFlowNode = Node<{ component: Component }, 'component'>
+export type ComponentFlowNode = Node<
+  {
+    component: Component
+    /** Cresce para caberem as faixas das conexões que dividem uma alça (ver portLayout). */
+    minSize?: { width?: number; height?: number }
+  },
+  'component'
+>
 
 export const NODE_WIDTH = 200
 
@@ -42,10 +49,14 @@ function ComponentNode({ data, selected }: NodeProps<ComponentFlowNode>) {
 
   return (
     <div
-      className={`group rounded-lg border bg-surface px-3 py-2.5 shadow-sm transition-shadow ${
+      // Coluna centralizada: se o nó crescer para caber as conexões, o conteúdo fica no meio.
+      className={`group flex flex-col justify-center rounded-lg border bg-surface px-3 py-2.5 shadow-sm transition-shadow ${
         selected ? 'border-slate-900 ring-2 ring-slate-900/15' : 'border-slate-200 hover:shadow-md'
       }`}
-      style={{ width: NODE_WIDTH }}
+      style={{
+        width: Math.max(NODE_WIDTH, data.minSize?.width ?? 0),
+        minHeight: data.minSize?.height,
+      }}
       onDoubleClick={() => setEditing(true)}
     >
       {sides.map((side) => (

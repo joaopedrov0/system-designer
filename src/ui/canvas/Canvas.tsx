@@ -24,7 +24,7 @@ import ComponentNode, { NODE_WIDTH } from './ComponentNode'
 import ConnectionEdge, { type ConnectionFlowEdge } from './ConnectionEdge'
 import GroupNode from './GroupNode'
 import LaserOverlay from './LaserOverlay'
-import { containingGroup, toEdges, toNodes, type FlowNode } from './mapping'
+import { containingGroup, portLayout, toEdges, toNodes, type FlowNode } from './mapping'
 import NoteNode from './NoteNode'
 import { addAt, isPaletteItem, NODE_HEIGHT, PALETTE_DRAG_MIME } from './placement'
 import { debugInput } from '../debugInput'
@@ -75,14 +75,22 @@ export default function Canvas() {
     () => searchComponents(components, search.text, search.kind),
     [components, search.text, search.kind],
   )
+  // Componentes crescem quando as faixas de uma alça não cabem neles.
+  const minSizes = useMemo(
+    () => portLayout(connections, components).minSizes,
+    [connections, components],
+  )
   const displayNodes = useMemo(
     () =>
-      matches
-        ? nodes.map((n) =>
-            n.type === 'component' && !matches.has(n.id) ? { ...n, className: 'dimmed' } : n,
-          )
-        : nodes,
-    [nodes, matches],
+      nodes.map((n) => {
+        if (n.type !== 'component') return n
+        let node = n
+        const minSize = minSizes.get(n.id)
+        if (minSize) node = { ...node, data: { ...node.data, minSize } }
+        if (matches && !matches.has(n.id)) node = { ...node, className: 'dimmed' }
+        return node
+      }),
+    [nodes, matches, minSizes],
   )
   // Fluxo: agenda os sinais (ida e volta) de cada conexão.
   const schedule = useMemo(

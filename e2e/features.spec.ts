@@ -437,3 +437,58 @@ test('laser desenha um traço temporário que some sozinho', async ({ page }) =>
   await page.keyboard.press('Escape')
   await expect(overlay).toHaveCount(0)
 })
+
+test('nó cresce para caber as conexões que dividem uma alça', async ({ page }) => {
+  const server = (id: string, x: number, y: number) => ({
+    id,
+    kind: 'server',
+    name: id,
+    layout: { x, y },
+  })
+  const neighbors = ['b', 'c', 'd', 'e']
+  await page.goto('/')
+  await page.getByTestId('import-input').setInputFiles({
+    name: 'hub.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(
+      JSON.stringify({
+        id: 'hub',
+        name: 'Hub',
+        createdAt: '2026-01-01',
+        updatedAt: '2026-01-01',
+        components: [server('a', 0, 200), ...neighbors.map((n, i) => server(n, 500, i * 170 - 50))],
+        connections: neighbors.map((n) => ({
+          id: `a-${n}`,
+          source: 'a',
+          target: n,
+          direction: 'two-way',
+        })),
+      }),
+    ),
+  })
+  const hub = page.locator('.react-flow__node[data-id="a"]')
+  await expect(hub).toBeVisible()
+  const box = (await hub.boundingBox())!
+  // 8 faixas na alça direita não cabem nos ~58 px padrão.
+  expect(box.height).toBeGreaterThan(80)
+
+  // Toda ponta que encosta na lateral direita do hub fica dentro da altura dele.
+  const ends = await page
+    .locator('.react-flow__edge path.react-flow__edge-path')
+    .evaluateAll((paths) =>
+      paths.flatMap((p) => {
+        const path = p as SVGPathElement
+        const m = path.getScreenCTM()!
+        return [0, path.getTotalLength()].map((len) => {
+          const pt = path.getPointAtLength(len).matrixTransform(m)
+          return { x: pt.x, y: pt.y }
+        })
+      }),
+    )
+  const onHub = ends.filter((p) => Math.abs(p.x - (box.x + box.width)) < 12)
+  expect(onHub).toHaveLength(8)
+  for (const p of onHub) {
+    expect(p.y).toBeGreaterThan(box.y)
+    expect(p.y).toBeLessThan(box.y + box.height)
+  }
+})

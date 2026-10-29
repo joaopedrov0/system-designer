@@ -79,15 +79,15 @@ export function toEdges(
   const prev = new Map(previous.map((e) => [e.id, e]))
   const byId = new Map(components.map((c) => [c.id, c]))
   const offsets = laneOffsets(connections)
+  const { handles, shifts: ports } = portLayout(connections, components)
   return connections.map((c) => {
-    const auto = autoHandles(byId.get(c.source), byId.get(c.target))
     return {
       id: c.id,
       type: 'connection',
       source: c.source,
       target: c.target,
-      sourceHandle: c.layout?.sourceHandle ?? auto.source,
-      targetHandle: c.layout?.targetHandle ?? auto.target,
+      sourceHandle: handles.get(c.id)!.source,
+      targetHandle: handles.get(c.id)!.target,
       label: edgeLabel(c, byId.get(c.target)),
       // Mão dupla vira duas faixas, cada uma com sua seta (ver ConnectionEdge).
       // Cor via variável CSS (estilo inline) para acompanhar o tema claro/escuro.
@@ -98,7 +98,12 @@ export function toEdges(
         color: 'var(--color-slate-400)',
       },
       animated: c.async,
-      data: { twoWay: c.direction === 'two-way', offset: offsets.get(c.id), async: c.async },
+      data: {
+        twoWay: c.direction === 'two-way',
+        offset: offsets.get(c.id),
+        ports: ports.get(c.id),
+        async: c.async,
+      },
       selected: prev.get(c.id)?.selected,
     }
   })
@@ -127,6 +132,104 @@ export function laneOffsets(connections: Connection[]): Map<string, number> {
     })
   }
   return offsets
+}
+
+/** Espaço extra entre os blocos de nós diferentes numa mesma alça. */
+const PORT_GAP = 6
+/** Folga entre a faixa da ponta e a quina do componente. */
+const PORT_PAD = 12
+
+/** Tamanho mínimo de um componente para as faixas das suas alças caberem nele. */
+export interface MinSize {
+  width?: number
+  height?: number
+}
+
+/**
+ * Onde cada conexão encosta nos componentes:
+ * - `handles`: a alça de cada ponta (a escolhida pelo usuário ou a automática);
+ * - `shifts`: conexões com nós diferentes que saem pela mesma alça ganham pontos distintos
+ *   ao longo dela, em vez de partirem todas do centro (e as faixas de mão dupla de uma
+ *   coincidirem com as da outra). Cada nó vizinho ocupa um bloco com as faixas do par
+ *   (laneOffsets); os blocos seguem a posição do vizinho ao longo da alça, para os
+ *   traçados não se cruzarem. Só aparecem as conexões que dividem alça;
+ * - `minSizes`: altura (alças laterais) ou largura (alças de cima e de baixo) que cada
+ *   componente precisa para as faixas não ficarem soltas fora dele. Só para alças com
+ *   mais de uma faixa.
+ */
+export function portLayout(connections: Connection[], components: Component[]) {
+  const byId = new Map(components.map((c) => [c.id, c]))
+  const handles = new Map(
+    connections.map((c) => {
+      const auto = autoHandles(byId.get(c.source), byId.get(c.target))
+      return [
+        c.id,
+        {
+          source: c.layout?.sourceHandle ?? auto.source,
+          target: c.layout?.targetHandle ?? auto.target,
+        },
+      ]
+    }),
+  )
+
+  // Componente -> alça -> vizinho -> conexões (com a ponta que está nesta alça).
+  type Ends = { c: Connection; end: 'source' | 'target' }[]
+  const ports = new Map<string, { node: string; handle: string; blocks: Map<string, Ends> }>()
+  for (const c of connections) {
+    const h = handles.get(c.id)
+    for (const end of ['source', 'target'] as const) {
+      const handle = h?.[end]
+      if (!handle) continue
+      const node = c[end]
+      const key = `${node}\u0000${handle}`
+      const other = end === 'source' ? c.target : c.source
+      const port = ports.get(key) ?? { node, handle, blocks: new Map<string, Ends>() }
+      port.blocks.set(other, [...(port.blocks.get(other) ?? []), { c, end }])
+      ports.set(key, port)
+    }
+  }
+
+  const shifts = new Map<string, { source: number; target: number }>()
+  const minSizes = new Map<string, MinSize>()
+  for (const { node, handle, blocks } of ports.values()) {
+    const vertical = handle === 'left' || handle === 'right' // pontas distribuídas em y
+    const along = (id: string) => {
+      const l = byId.get(id)?.layout
+      return l ? (vertical ? l.y : l.x) : 0
+    }
+    const ordered = [...blocks.entries()].sort(
+      ([a], [b]) => along(a) - along(b) || a.localeCompare(b),
+    )
+    const widths = ordered.map(([, list]) =>
+      list.reduce((n, { c }) => n + (c.direction === 'two-way' ? 2 : 1), 0),
+    )
+    // Centro de cada bloco, com os blocos encostados e um respiro entre eles.
+    const centers: number[] = []
+    let cursor = 0
+    widths.forEach((w, i) => {
+      if (i > 0) cursor += PORT_GAP
+      centers.push(cursor + ((w - 1) / 2) * LANE_GAP)
+      cursor += w * LANE_GAP
+    })
+    // Distância entre a primeira e a última faixa da alça.
+    const span = cursor - LANE_GAP
+    if (span > 0) {
+      const size = minSizes.get(node) ?? {}
+      const needed = span + 2 * PORT_PAD
+      if (vertical) size.height = Math.max(size.height ?? 0, needed)
+      else size.width = Math.max(size.width ?? 0, needed)
+      minSizes.set(node, size)
+    }
+    if (blocks.size < 2) continue
+    ordered.forEach(([, list], i) => {
+      for (const { c, end } of list) {
+        const r = shifts.get(c.id) ?? { source: 0, target: 0 }
+        r[end] = centers[i] - span / 2
+        shifts.set(c.id, r)
+      }
+    })
+  }
+  return { handles, shifts, minSizes }
 }
 
 /**

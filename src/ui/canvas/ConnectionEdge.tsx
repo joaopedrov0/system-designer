@@ -1,11 +1,20 @@
 import { BaseEdge, type Edge, type EdgeProps } from '@xyflow/react'
 import { memo } from 'react'
-import { lanePath, reverseEnds, shift, type EdgeEnds } from './edgeGeometry'
+import {
+  lanePath,
+  reverseEnds,
+  reversePorts,
+  shift,
+  type EdgeEnds,
+  type EdgePorts,
+} from './edgeGeometry'
 
 export interface ConnectionEdgeData extends Record<string, unknown> {
   twoWay?: boolean
   /** Deslocamento da faixa, para conexões entre o mesmo par não se sobreporem. */
   offset?: number
+  /** Ponto de cada ponta na alça, quando ela é dividida com conexões para outros nós. */
+  ports?: EdgePorts
   async?: boolean
   /** Presente quando a visualização de fluxo está ligada. */
   flow?: { forward: number; backward?: number; slots: number }
@@ -27,8 +36,11 @@ function ConnectionEdge(props: EdgeProps<ConnectionFlowEdge>) {
   const ends: EdgeEnds = { sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition }
 
   // Ida: origem -> destino na faixa "+"; volta (mão dupla): destino -> origem na faixa "-".
-  const [pathGo, labelX, labelY] = lanePath(ends, offset + half)
-  const pathBack = data?.twoWay ? lanePath(reverseEnds(ends), offset - half)[0] : undefined
+  const ports = data?.ports
+  const [pathGo, labelX, labelY] = lanePath(ends, offset + half, ports)
+  const pathBack = data?.twoWay
+    ? lanePath(reverseEnds(ends), offset - half, ports && reversePorts(ports))[0]
+    : undefined
 
   // Rótulo: mão dupla fica entre as duas faixas; conexões deslocadas empurram o rótulo
   // para o lado da própria faixa, para rótulos vizinhos não se sobreporem.

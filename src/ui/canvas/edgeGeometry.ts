@@ -9,6 +9,17 @@ export interface EdgeEnds {
   targetPosition: Position
 }
 
+/**
+ * Deslocamento de cada ponta ao longo da alça, para conexões com nós diferentes que saem
+ * pela mesma alça não partirem do mesmo ponto (ver portShifts em mapping.ts).
+ */
+export interface EdgePorts {
+  source: number
+  target: number
+}
+
+const NO_PORTS: EdgePorts = { source: 0, target: 0 }
+
 const isHorizontal = (side: Position) => side === Position.Left || side === Position.Right
 
 /** Desloca um ponto de conexão perpendicularmente ao lado em que está a alça. */
@@ -28,10 +39,18 @@ export function shift(x: number, y: number, side: Position, d: number) {
 export function lanePath(
   ends: EdgeEnds,
   d: number,
+  ports: EdgePorts = NO_PORTS,
 ): [path: string, labelX: number, labelY: number] {
-  const s = shift(ends.sourceX, ends.sourceY, ends.sourcePosition, d)
-  const t = shift(ends.targetX, ends.targetY, ends.targetPosition, d)
+  // Primeiro a ponta vai para o seu ponto na alça; a faixa se desloca a partir dele.
+  const s0 = shift(ends.sourceX, ends.sourceY, ends.sourcePosition, ports.source)
+  const t0 = shift(ends.targetX, ends.targetY, ends.targetPosition, ports.target)
+  const s = shift(s0.x, s0.y, ends.sourcePosition, d)
+  const t = shift(t0.x, t0.y, ends.targetPosition, d)
   const turn = Math.sign(ends.targetX - ends.sourceX) * Math.sign(ends.targetY - ends.sourceY)
+  // A dobra segue a mesma regra para o deslocamento total (faixa + pontos nas alças), assim
+  // conexões vizinhas numa alça dividida também se aninham em vez de se cruzarem. A soma
+  // das pontas não muda com a inversão, então ida e volta continuam coerentes.
+  const bend = (d + ports.source + ports.target) * turn
   const [path, labelX, labelY] = getSmoothStepPath({
     sourceX: s.x,
     sourceY: s.y,
@@ -39,12 +58,15 @@ export function lanePath(
     targetX: t.x,
     targetY: t.y,
     targetPosition: ends.targetPosition,
-    centerX: (ends.sourceX + ends.targetX) / 2 - d * turn,
-    centerY: (ends.sourceY + ends.targetY) / 2 - d * turn,
+    centerX: (s0.x + t0.x) / 2 - bend,
+    centerY: (s0.y + t0.y) / 2 - bend,
     borderRadius: 8,
   })
   return [path, labelX, labelY]
 }
+
+/** Pontas trocadas, para o trajeto ao contrário. */
+export const reversePorts = (p: EdgePorts): EdgePorts => ({ source: p.target, target: p.source })
 
 /** O mesmo trajeto percorrido ao contrário (destino -> origem). */
 export function reverseEnds(e: EdgeEnds): EdgeEnds {
