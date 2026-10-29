@@ -47,6 +47,11 @@ const Id = z.string().min(1)
 
 // --- Detalhes opcionais (complexidade progressiva) ---------------------------
 
+/** Posição de um item no diagrama interno do componente (mapa de navegação, diagrama ER). */
+const DiagramPositionSchema = z.object({ x: z.number(), y: z.number() })
+
+export const CARDINALITIES = ['1:1', '1:N', 'N:N'] as const
+
 export const RouteSchema = z.object({
   id: Id,
   method: z.enum(HTTP_METHODS),
@@ -63,6 +68,33 @@ export const EntitySchema = z.object({
   id: Id,
   name: z.string().min(1),
   fields: z.array(EntityFieldSchema).optional(),
+  layout: DiagramPositionSchema.optional(),
+})
+
+/** Tela (ou página/rota de interface) de um cliente. */
+export const ScreenSchema = z.object({
+  id: Id,
+  name: z.string().min(1),
+  path: z.string().optional(),
+  description: z.string().optional(),
+  layout: DiagramPositionSchema.optional(),
+})
+
+/** Navegação de uma tela para outra (`from`/`to` são ids de telas). */
+export const NavigationSchema = z.object({
+  id: Id,
+  from: Id,
+  to: Id,
+  label: z.string().optional(),
+})
+
+/** Relacionamento entre duas tabelas (`from`/`to` são ids de entidades). */
+export const RelationSchema = z.object({
+  id: Id,
+  from: Id,
+  to: Id,
+  cardinality: z.enum(CARDINALITIES).optional(),
+  label: z.string().optional(),
 })
 
 export const ModelSchema = z.object({
@@ -89,8 +121,12 @@ export const ComponentDetailsSchema = z.object({
   entities: z.array(EntitySchema).optional(),
   models: z.array(ModelSchema).optional(),
   topics: z.array(TopicSchema).optional(),
+  screens: z.array(ScreenSchema).optional(),
   env: z.array(EnvVarSchema).optional(),
   notes: z.string().optional(),
+  // Ligações do diagrama interno (ver core/subdiagram.ts).
+  navigation: z.array(NavigationSchema).optional(),
+  relations: z.array(RelationSchema).optional(),
 })
 
 // --- Elementos do cenário -----------------------------------------------------

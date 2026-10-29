@@ -5,11 +5,15 @@ import {
   addDetailItem,
   addGroup,
   addNote,
+  addSubdiagramLink,
   applyLayout,
   connect,
   createScenario,
   moveElements,
+  moveSubdiagramNodes,
   removeElements,
+  removeSubdiagramLinks,
+  removeSubdiagramNodes,
   renameScenario,
   resizeElement,
   reverseConnection,
@@ -20,6 +24,7 @@ import {
   updateGroup,
   updateNote,
   updateScenarioDescription,
+  updateSubdiagramLink,
   type AddComponentInput,
   type ComponentDetails,
   type ComponentPatch,
@@ -31,6 +36,8 @@ import {
   type Move,
   type Rect,
   type ItemSection,
+  type LinkInput,
+  type LinkPatch,
   type NewDetailItem,
   type Point,
   type Scenario,
@@ -100,6 +107,12 @@ interface EditorState {
   ) => string | undefined
   updateComponentDetails: (componentId: string, patch: ComponentDetails) => void
   setComponentExpanded: (id: string, expanded: boolean) => void
+  // Diagrama interno de um componente (mapa de navegação, diagrama ER).
+  addSubdiagramLink: (componentId: string, input: LinkInput) => string | undefined
+  updateSubdiagramLink: (componentId: string, linkId: string, patch: LinkPatch) => void
+  removeSubdiagramLinks: (componentId: string, ids: string[]) => void
+  removeSubdiagramNodes: (componentId: string, ids: string[]) => void
+  moveSubdiagramNodes: (componentId: string, moves: ({ id: string } & Point)[]) => void
 }
 
 export const emptySelection: Selection = {
@@ -194,6 +207,19 @@ export const useEditor = create<EditorState>()(
           update((s) => updateComponentDetails(s, componentId, patch)),
         setComponentExpanded: (id, expanded) =>
           update((s) => setComponentExpanded(s, id, expanded)),
+        addSubdiagramLink: (componentId, input) =>
+          apply((s) => {
+            const r = addSubdiagramLink(s, componentId, input)
+            return { scenario: r.scenario, result: r.id }
+          }),
+        updateSubdiagramLink: (componentId, linkId, patch) =>
+          update((s) => updateSubdiagramLink(s, componentId, linkId, patch)),
+        removeSubdiagramLinks: (componentId, ids) =>
+          update((s) => removeSubdiagramLinks(s, componentId, ids)),
+        removeSubdiagramNodes: (componentId, ids) =>
+          update((s) => removeSubdiagramNodes(s, componentId, ids)),
+        moveSubdiagramNodes: (componentId, moves) =>
+          update((s) => moveSubdiagramNodes(s, componentId, moves)),
       }
     },
     {

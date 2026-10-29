@@ -136,6 +136,22 @@ function checkComponent(
     for (const id of repeated((d[section] ?? []).map((item) => item.id)))
       error(`"${c.id}" tem dois itens em ${section} com o id "${id}".`, c.id)
   }
+  for (const [links, nodes, noun] of [
+    [d.navigation, d.screens, 'tela'],
+    [d.relations, d.entities, 'tabela'],
+  ] as const) {
+    const ids = new Set((nodes ?? []).map((n) => n.id))
+    for (const l of links ?? []) {
+      const missing = [l.from, l.to].filter((id) => !ids.has(id))
+      if (missing.length)
+        error(
+          `A ligação "${l.id}" de "${c.id}" aponta para ${noun} inexistente: ${missing.join(', ')}.`,
+          c.id,
+        )
+    }
+    for (const id of repeated((links ?? []).map((l) => l.id)))
+      error(`"${c.id}" tem duas ligações com o id "${id}".`, c.id)
+  }
   for (const key of repeated((d.env ?? []).map((v) => v.key)))
     warn(`"${c.id}" declara a variável "${key}" mais de uma vez.`, c.id)
   for (const v of d.env ?? []) {

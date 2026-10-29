@@ -50,6 +50,7 @@ export default function Canvas() {
   const { moveElements, removeElements, connect, setSelection } = useEditor.getState()
   const { screenToFlowPosition, getInternalNode } = useReactFlow()
   const flowMode = useView((s) => s.flow)
+  const subdiagramActive = useView((s) => s.subdiagramActive)
   const theme = useResolvedTheme()
   const wrapper = useRef<HTMLDivElement>(null)
   const tabletGesture = useTabletNavigation(wrapper)
@@ -210,7 +211,7 @@ export default function Canvas() {
         onSelectionChange={onSelectionChange}
         isValidConnection={isValidConnection}
         connectionMode={ConnectionMode.Loose}
-        deleteKeyCode={['Delete', 'Backspace']}
+        deleteKeyCode={subdiagramActive ? null : ['Delete', 'Backspace']}
         multiSelectionKeyCode={['Shift', 'Control', 'Meta']}
         elevateNodesOnSelect={false}
         // Espaço é tratado por useTabletNavigation (pan/zoom estilo Krita, inclusive com caneta).

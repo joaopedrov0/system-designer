@@ -22,6 +22,7 @@ import type {
   Protocol,
   Route,
   Scenario,
+  Screen,
   Topic,
 } from './model'
 import { ComponentDetailsSchema, PROTOCOLS, SCHEMA_VERSION } from './schema'
@@ -394,6 +395,7 @@ export interface NewDetailItem {
   entities: Omit<Entity, 'id'>
   models: Omit<AiModel, 'id'>
   topics: Omit<Topic, 'id'>
+  screens: Omit<Screen, 'id'>
 }
 
 /** Acrescenta um item a uma seção, gerando um id legível e único dentro do componente. */
@@ -440,6 +442,18 @@ export function updateComponentDetails(
       return rest
     })
   }
+  // Ligações do diagrama interno só sobrevivem se as duas pontas ainda existem
+  // (remover uma tela ou tabela leva as navegações/relacionamentos dela junto).
+  for (const [links, nodes] of [
+    ['navigation', 'screens'],
+    ['relations', 'entities'],
+  ] as const) {
+    if (!Array.isArray(merged[links])) continue
+    const ids = new Set(((merged[nodes] ?? []) as { id: string }[]).map((n) => n?.id))
+    merged[links] = (merged[links] as { from: string; to: string }[]).filter(
+      (l) => !l || (ids.has(l.from) && ids.has(l.to)),
+    )
+  }
   for (const [key, value] of Object.entries(merged)) {
     const empty =
       value === undefined ||
@@ -462,6 +476,11 @@ export function updateComponentDetails(
   const envKeys = (details.env ?? []).map((e) => e.key)
   const duplicatedKey = envKeys.find((k, i) => envKeys.indexOf(k) !== i)
   if (duplicatedKey) throw new CommandError(`Variável de ambiente duplicada: ${duplicatedKey}`)
+  for (const links of [details.navigation, details.relations]) {
+    const linkIds = (links ?? []).map((l) => l.id)
+    const dupLink = linkIds.find((id, i) => linkIds.indexOf(id) !== i)
+    if (dupLink) throw new CommandError(`Id de ligação duplicado: ${dupLink}`)
+  }
 
   const valid = new Set(itemIds)
   return {

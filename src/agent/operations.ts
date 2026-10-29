@@ -38,6 +38,12 @@ import {
   updateScenarioDescription,
   validateScenario,
   formatValidation,
+  addSubdiagramLink,
+  removeSubdiagramLinks,
+  CARDINALITIES,
+  ScreenSchema,
+  NavigationSchema,
+  RelationSchema,
   type ItemSection,
   type NewDetailItem,
   type Point,
@@ -114,9 +120,11 @@ const optionalText = z.string().optional()
 
 const itemSchemas = {
   routes: RouteSchema.omit({ id: true }),
-  entities: EntitySchema.omit({ id: true }),
+  // A posição no diagrama interno fica com a UI (ou com o padrão em grade).
+  entities: EntitySchema.omit({ id: true, layout: true }),
   models: ModelSchema.omit({ id: true }),
   topics: TopicSchema.omit({ id: true }),
+  screens: ScreenSchema.omit({ id: true, layout: true }),
 } satisfies Record<ItemSection, z.ZodObject>
 
 export const operations: Operation[] = [
@@ -279,7 +287,7 @@ export const operations: Operation[] = [
   }),
   define({
     name: 'add_detail_item',
-    description: `Acrescenta um item de detalhe a um componente (complexidade progressiva). Cada tipo só aceita algumas seções (veja list_component_kinds). Formatos de item: routes {method: ${HTTP_METHODS.join('|')}, path, description?}; entities {name, fields?: [{name, type?}]}; models {name, purpose?}; topics {name}. Devolve o id do item (usado em "uses" das conexões).`,
+    description: `Acrescenta um item de detalhe a um componente (complexidade progressiva). Cada tipo só aceita algumas seções (veja list_component_kinds). Formatos de item: routes {method: ${HTTP_METHODS.join('|')}, path, description?}; entities {name, fields?: [{name, type?}]}; models {name, purpose?}; topics {name}; screens {name, path?, description?} (telas de um cliente). Devolve o id do item (usado em "uses" das conexões e em link_items).`,
     // A raiz precisa ser um objeto simples (clientes MCP recusam anyOf no topo); o item
     // é a união dos formatos, e o formato certo para a seção é conferido ao executar.
     input: z.object({
@@ -290,6 +298,7 @@ export const operations: Operation[] = [
         itemSchemas.entities.strict(),
         itemSchemas.models.strict(),
         itemSchemas.topics.strict(),
+        itemSchemas.screens.strict(),
       ]),
     }),
     run: (s, { componentId, section, item }) => {
@@ -309,15 +318,18 @@ ${z.prettifyError(parsed.error)}`)
   define({
     name: 'set_component_details',
     description:
-      'Substitui seções inteiras dos detalhes de um componente (as não informadas ficam como estão). Lista vazia ou texto vazio remove a seção. Itens de routes/entities/models/topics precisam de "id". Variáveis secretas ("secret": true) nunca guardam valor.',
+      'Substitui seções inteiras dos detalhes de um componente (as não informadas ficam como estão). Lista vazia ou texto vazio remove a seção. Itens de routes/entities/models/topics/screens precisam de "id". navigation (cliente) e relations (banco) são as ligações do diagrama interno: {id, from, to, label?, cardinality?} com ids de telas/tabelas; ligações cujas pontas não existem são descartadas. Variáveis secretas ("secret": true) nunca guardam valor.',
     input: z.object({
       componentId: z.string(),
       routes: z.array(RouteSchema).optional(),
       entities: z.array(EntitySchema).optional(),
       models: z.array(ModelSchema).optional(),
       topics: z.array(TopicSchema).optional(),
+      screens: z.array(ScreenSchema).optional(),
       env: z.array(EnvVarSchema).optional(),
       notes: optionalText,
+      navigation: z.array(NavigationSchema).optional(),
+      relations: z.array(RelationSchema).optional(),
     }),
     run: (s, { componentId, ...patch }) => {
       const defined = Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined))
@@ -466,6 +478,32 @@ ${z.prettifyError(parsed.error)}`)
 ]
 
 operations.push(
+  define({
+    name: 'link_items',
+    description:
+      'Liga dois itens no diagrama interno de um componente. Cliente: navegação da tela "from" para a tela "to" (ids de screens; label = ação, ex.: "entrar"). Banco de dados: relacionamento entre as tabelas "from" e "to" (ids de entities) com cardinality 1:1, 1:N ou N:N (lado "from" é o primeiro). Crie os itens antes com add_detail_item.',
+    input: z.object({
+      componentId: z.string(),
+      from: z.string(),
+      to: z.string(),
+      label: optionalText,
+      cardinality: z.enum(CARDINALITIES).optional(),
+    }),
+    run: (s, { componentId, ...input }) => {
+      const r = addSubdiagramLink(s, componentId, input)
+      return { scenario: r.scenario, id: r.id, text: `Ligação criada com id "${r.id}".` }
+    },
+  }),
+  define({
+    name: 'unlink_items',
+    description:
+      'Remove ligações do diagrama interno de um componente (ids devolvidos por link_items).',
+    input: z.object({ componentId: z.string(), ids: z.array(z.string()).min(1) }),
+    run: (s, { componentId, ids }) => ({
+      scenario: removeSubdiagramLinks(s, componentId, ids),
+      text: `Removida(s): ${ids.join(', ')}.`,
+    }),
+  }),
   define({
     name: 'validate_scenario',
     description:

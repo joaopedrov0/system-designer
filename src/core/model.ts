@@ -6,6 +6,9 @@ import type {
   ModelSchema,
   RouteSchema,
   TopicSchema,
+  ScreenSchema,
+  NavigationSchema,
+  RelationSchema,
   ComponentDetailsSchema,
   ComponentSchema,
   ConnectionSchema,
@@ -22,6 +25,9 @@ export type Route = z.infer<typeof RouteSchema>
 export type Entity = z.infer<typeof EntitySchema>
 export type AiModel = z.infer<typeof ModelSchema>
 export type Topic = z.infer<typeof TopicSchema>
+export type Screen = z.infer<typeof ScreenSchema>
+export type Navigation = z.infer<typeof NavigationSchema>
+export type Relation = z.infer<typeof RelationSchema>
 export type EnvVar = z.infer<typeof EnvVarSchema>
 export type ComponentDetails = z.infer<typeof ComponentDetailsSchema>
 export type Component = z.infer<typeof ComponentSchema>

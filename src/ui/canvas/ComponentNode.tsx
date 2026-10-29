@@ -160,6 +160,12 @@ function ExpandedDetails({ component: c }: { component: Component }) {
           {t.name}
         </div>
       ))}
+      {d.screens?.map((t) => (
+        <div key={t.id} className={line} title={t.description}>
+          {t.name}
+          {t.path && <span className="font-mono text-slate-400"> {t.path}</span>}
+        </div>
+      ))}
       {d.env?.map((v) => (
         <div key={v.key} className={`${line} flex items-center gap-1 font-mono text-slate-500`}>
           <span className="truncate">

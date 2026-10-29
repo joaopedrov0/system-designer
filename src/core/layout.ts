@@ -73,3 +73,28 @@ export async function computeLayout(
   walk(result, { x: 0, y: 0 })
   return layout
 }
+
+/**
+ * Organiza um grafo simples (sem grupos), como o diagrama interno de um componente:
+ * camadas de cima para baixo seguindo as ligações. Devolve a posição de cada nó.
+ */
+export async function layoutGraph(
+  nodes: ({ id: string } & Size)[],
+  links: { from: string; to: string }[],
+): Promise<Record<string, Point>> {
+  const { default: ELK } = await import('elkjs/lib/elk.bundled.js')
+  const result = await new ELK().layout({
+    id: '__root__',
+    layoutOptions: {
+      'elk.algorithm': 'layered',
+      'elk.direction': 'DOWN',
+      'elk.spacing.nodeNode': '40',
+      'elk.layered.spacing.nodeNodeBetweenLayers': '70',
+    },
+    children: nodes,
+    edges: links.map((l, i) => ({ id: `e${i}`, sources: [l.from], targets: [l.to] })),
+  })
+  return Object.fromEntries(
+    (result.children ?? []).map((n) => [n.id, { x: n.x ?? 0, y: n.y ?? 0 }]),
+  )
+}

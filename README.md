@@ -21,26 +21,27 @@ npm install
 npm run dev        # http://localhost:5173
 ```
 
-| Ação                                | Como                                                                                                                                       |
-| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| Adicionar componente, grupo ou nota | arraste da barra lateral (ou clique)                                                                                                       |
-| Conectar                            | arraste da borda de um componente até outro                                                                                                |
-| Renomear                            | duplo clique no nó                                                                                                                         |
-| Editar detalhes                     | selecione e use o painel à direita                                                                                                         |
-| Colocar num grupo                   | arraste o componente para dentro do grupo                                                                                                  |
-| Excluir                             | `Delete` / `Backspace`                                                                                                                     |
-| Desfazer / refazer                  | `Ctrl+Z` / `Ctrl+Shift+Z` (ou `Ctrl+Y`)                                                                                                    |
-| Buscar                              | caixa no canto do canvas (nome, tecnologia, rotas, tags…); `Enter` enquadra os resultados                                                  |
-| Organizar                           | botão **Organizar** (auto-layout em camadas; um único passo de desfazer)                                                                   |
-| Cenários                            | ícone de pasta ao lado do nome: novo, abrir, duplicar, excluir, importar JSON                                                              |
-| Exportar                            | botão **Exportar**: JSON, resumo em Markdown (baixar ou copiar para colar num prompt), diagrama Mermaid, PNG ou SVG                        |
-| Vincular a um arquivo               | botão **Arquivo**: grava o cenário num `.json` e sincroniza nos dois sentidos; mudanças feitas no arquivo aparecem no canvas (Chrome/Edge) |
-| Visualizar fluxo                    | botão **Fluxo** ou `F`: sinais percorrem as conexões no sentido certo, em cascata a partir dos pontos de entrada (assíncronas em âmbar)    |
-| Mão dupla                           | sentido **Bidirecional** no painel da conexão: desenhada como duas faixas, uma em cada sentido                                             |
-| Mover a vista (caneta ou mouse)     | segure `Espaço` e arraste (como no Krita)                                                                                                  |
-| Zoom com mesa digitalizadora        | segure `Ctrl+Espaço` e arraste a caneta (como no Krita): para cima/direita aproxima, para baixo/esquerda afasta                            |
-| Laser                               | botão **Laser** ou `L`: desenho temporário que some sozinho (`Esc` sai)                                                                    |
-| Tema                                | botão no canto direito da barra: do sistema → claro → escuro (lembrado neste navegador)                                                    |
+| Ação                                | Como                                                                                                                                            |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| Adicionar componente, grupo ou nota | arraste da barra lateral (ou clique)                                                                                                            |
+| Conectar                            | arraste da borda de um componente até outro                                                                                                     |
+| Renomear                            | duplo clique no nó                                                                                                                              |
+| Editar detalhes                     | selecione e use o painel à direita                                                                                                              |
+| Diagrama interno                    | cliente: **Mapa de navegação** (telas e navegação); banco: **Diagrama ER** (tabelas e relacionamentos). No painel do componente, com tela cheia |
+| Colocar num grupo                   | arraste o componente para dentro do grupo                                                                                                       |
+| Excluir                             | `Delete` / `Backspace`                                                                                                                          |
+| Desfazer / refazer                  | `Ctrl+Z` / `Ctrl+Shift+Z` (ou `Ctrl+Y`)                                                                                                         |
+| Buscar                              | caixa no canto do canvas (nome, tecnologia, rotas, tags…); `Enter` enquadra os resultados                                                       |
+| Organizar                           | botão **Organizar** (auto-layout em camadas; um único passo de desfazer)                                                                        |
+| Cenários                            | ícone de pasta ao lado do nome: novo, abrir, duplicar, excluir, importar JSON                                                                   |
+| Exportar                            | botão **Exportar**: JSON, resumo em Markdown (baixar ou copiar para colar num prompt), diagrama Mermaid, PNG ou SVG                             |
+| Vincular a um arquivo               | botão **Arquivo**: grava o cenário num `.json` e sincroniza nos dois sentidos; mudanças feitas no arquivo aparecem no canvas (Chrome/Edge)      |
+| Visualizar fluxo                    | botão **Fluxo** ou `F`: sinais percorrem as conexões no sentido certo, em cascata a partir dos pontos de entrada (assíncronas em âmbar)         |
+| Mão dupla                           | sentido **Bidirecional** no painel da conexão: desenhada como duas faixas, uma em cada sentido                                                  |
+| Mover a vista (caneta ou mouse)     | segure `Espaço` e arraste (como no Krita)                                                                                                       |
+| Zoom com mesa digitalizadora        | segure `Ctrl+Espaço` e arraste a caneta (como no Krita): para cima/direita aproxima, para baixo/esquerda afasta                                 |
+| Laser                               | botão **Laser** ou `L`: desenho temporário que some sozinho (`Esc` sai)                                                                         |
+| Tema                                | botão no canto direito da barra: do sistema → claro → escuro (lembrado neste navegador)                                                         |
 
 ## Scripts
 
@@ -86,7 +87,7 @@ O arquivo no fim é o padrão; sem ele, cada ferramenta recebe `file`. Ferrament
 `list_component_kinds`, `add_component`, `update_component`, `connect`, `update_connection`,
 `reverse_connection`, `add_detail_item`, `set_component_details`, `add_group`,
 `update_group`, `set_group_membership`, `add_note`, `update_note`, `move_elements`,
-`auto_layout`, `remove_elements`, `set_scenario_info`, `validate_scenario` (erros e avisos
+`auto_layout`, `remove_elements`, `set_scenario_info`, `link_items`/`unlink_items` (diagrama interno: navegação entre telas, relacionamentos entre tabelas), `validate_scenario` (erros e avisos
 de consistência) e `batch` (vários passos numa chamada, tudo ou nada; `"$N"` cita o id criado
 no passo N).
 

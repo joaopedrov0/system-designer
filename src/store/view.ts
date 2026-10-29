@@ -24,15 +24,23 @@ interface ViewState {
   laser: boolean
   /** Preferência de tema (salva só neste navegador). */
   theme: ThemePreference
+  /**
+   * O diagrama interno de um componente está em uso (último clique foi nele): o teclado é
+   * dele, e o Delete do canvas principal fica desligado para não apagar o componente.
+   */
+  subdiagramActive: boolean
   toggleFlow: () => void
   setLaser: (on: boolean) => void
   setTheme: (theme: ThemePreference) => void
+  setSubdiagramActive: (active: boolean) => void
 }
 
 export const useView = create<ViewState>()((set) => ({
   flow: false,
   laser: false,
   theme: readTheme(),
+  subdiagramActive: false,
+  setSubdiagramActive: (subdiagramActive) => set({ subdiagramActive }),
   toggleFlow: () => set((s) => ({ flow: !s.flow })),
   setLaser: (laser) => set({ laser }),
   setTheme: (theme) => {

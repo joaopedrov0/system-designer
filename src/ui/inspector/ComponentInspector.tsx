@@ -2,6 +2,8 @@ import { componentCatalog, componentKindList, type ComponentKind } from '../../c
 import { useEditor } from '../../store/editor'
 import { CommitInput, CommitTextarea, Field, Select } from '../fields'
 import { CatalogIcon } from '../icons'
+import ErrorBoundary from '../ErrorBoundary'
+import SubdiagramSection from '../subdiagram/SubdiagramSection'
 import DetailSections from './DetailSections'
 import { DeleteButton } from './Inspector'
 
@@ -56,6 +58,9 @@ export default function ComponentInspector({ id }: { id: string }) {
       </Field>
 
       <DetailSections component={component} />
+      <ErrorBoundary label="Diagrama interno">
+        <SubdiagramSection component={component} />
+      </ErrorBoundary>
 
       <div className="border-t border-slate-100 pt-3">
         <DeleteButton

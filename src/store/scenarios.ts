@@ -93,6 +93,9 @@ export async function deleteScenario(id: string): Promise<void> {
  * mesmo id, importa como cópia em vez de sobrescrever.
  */
 export async function importScenario(text: string): Promise<Scenario> {
+  // O botão de importar já aparece durante a inicialização; sem esperar, a inicialização
+  // terminaria depois e abriria o último cenário por cima do importado.
+  await initialized
   await autosave?.flush()
   let scenario = fromJSON(text)
   if (
@@ -113,6 +116,7 @@ export async function importScenario(text: string): Promise<Scenario> {
  * de desfazer (nada se perde); senão, guarda como um cenário novo.
  */
 export async function openFileScenario(scenario: Scenario): Promise<void> {
+  await initialized // ver importScenario
   await autosave?.flush()
   const existing =
     scenario.id === useEditor.getState().scenario.id

@@ -9,10 +9,10 @@ import {
   type Component,
   type ComponentDetails,
   type DetailSection,
-  type Entity,
 } from '../../core'
 import { useEditor } from '../../store/editor'
 import { CommitInput, CommitTextarea, Field, Select } from '../fields'
+import { formatFields, parseFields, withFields } from './entityFields'
 import { SectionTitle } from './Inspector'
 
 const box =
@@ -45,6 +45,7 @@ export default function DetailSections({ component }: { component: Component }) 
     if (section === 'entities') newId = addDetailItem(id, 'entities', { name: 'nova_tabela' })
     if (section === 'models') newId = addDetailItem(id, 'models', { name: 'modelo' })
     if (section === 'topics') newId = addDetailItem(id, 'topics', { name: 'novo-topico' })
+    if (section === 'screens') newId = addDetailItem(id, 'screens', { name: 'Nova tela' })
     if (section === 'env') {
       const env = d.env ?? []
       const keys = new Set(env.map((e) => e.key))
@@ -151,6 +152,28 @@ export default function DetailSections({ component }: { component: Component }) 
                   value={t.name}
                   autoFocus={autoFocus('topics', t.id)}
                   onCommit={(name) => save({ topics: replace(d.topics!, i, { ...t, name }) })}
+                  className={mono}
+                />
+              </Row>
+            ))}
+
+          {section === 'screens' &&
+            d.screens?.map((t, i) => (
+              <Row key={t.id} onRemove={() => save({ screens: without(d.screens!, i) })}>
+                <CommitInput
+                  aria-label="Nome da tela"
+                  value={t.name}
+                  autoFocus={autoFocus('screens', t.id)}
+                  onCommit={(name) => save({ screens: replace(d.screens!, i, { ...t, name }) })}
+                  className={compact}
+                />
+                <CommitInput
+                  aria-label="Caminho da tela"
+                  value={t.path ?? ''}
+                  placeholder="caminho, ex.: /login (opcional)"
+                  onCommit={(path) =>
+                    save({ screens: replace(d.screens!, i, withOptional(t, 'path', path)) })
+                  }
                   className={mono}
                 />
               </Row>
@@ -319,29 +342,5 @@ function withOptional<T extends object, K extends keyof T>(item: T, key: K, valu
 function omit<T extends object, K extends keyof T>(item: T, key: K): T {
   const next = { ...item }
   delete next[key]
-  return next
-}
-
-function formatFields(e: Entity): string {
-  return (e.fields ?? []).map((f) => (f.type ? `${f.name}: ${f.type}` : f.name)).join(', ')
-}
-
-/** "id: uuid, email: text, nome" -> [{name:'id',type:'uuid'}, ...] */
-function parseFields(text: string): NonNullable<Entity['fields']> {
-  return text
-    .split(',')
-    .map((part) => part.trim())
-    .filter(Boolean)
-    .map((part) => {
-      const [name, ...type] = part.split(':')
-      const t = type.join(':').trim()
-      return t ? { name: name.trim(), type: t } : { name: name.trim() }
-    })
-    .filter((f) => f.name)
-}
-
-function withFields(e: Entity, fields: NonNullable<Entity['fields']>): Entity {
-  const next: Entity = { ...e, fields }
-  if (fields.length === 0) delete next.fields
   return next
 }

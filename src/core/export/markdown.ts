@@ -50,6 +50,33 @@ function componentSection(s: Scenario, c: Component): string[] {
     for (const t of d.topics) lines.push(`- ${t.name} \`${t.id}\``)
     lines.push('')
   }
+  if (d.screens?.length) {
+    lines.push(`**${detailSectionInfo.screens.label}**`, '')
+    for (const t of d.screens) {
+      const path = t.path ? ` \`${t.path}\`` : ''
+      lines.push(`- ${t.name}${path} (id \`${t.id}\`)${t.description ? ` — ${t.description}` : ''}`)
+    }
+    lines.push('')
+  }
+  const nameOf = (list: { id: string; name: string }[] | undefined, id: string) =>
+    list?.find((x) => x.id === id)?.name ?? id
+  if (d.navigation?.length) {
+    lines.push('**Navegação**', '')
+    for (const n of d.navigation) {
+      const label = n.label ? ` (${n.label})` : ''
+      lines.push(`- ${nameOf(d.screens, n.from)} → ${nameOf(d.screens, n.to)}${label}`)
+    }
+    lines.push('')
+  }
+  if (d.relations?.length) {
+    lines.push('**Relacionamentos**', '')
+    for (const r of d.relations) {
+      const kind = r.cardinality ? ` ${r.cardinality} ` : ' — '
+      const label = r.label ? ` (${r.label})` : ''
+      lines.push(`- ${nameOf(d.entities, r.from)}${kind}${nameOf(d.entities, r.to)}${label}`)
+    }
+    lines.push('')
+  }
   if (d.env?.length) {
     lines.push(`**${detailSectionInfo.env.label}**`, '')
     for (const e of d.env) {

@@ -2,7 +2,7 @@ import type { DetailSection } from './catalog'
 import type { Component } from './model'
 
 /** Seções cujos itens têm id e podem ser referenciados por conexões (`uses`). */
-export const ITEM_SECTIONS = ['routes', 'entities', 'models', 'topics'] as const
+export const ITEM_SECTIONS = ['routes', 'entities', 'models', 'topics', 'screens'] as const
 export type ItemSection = (typeof ITEM_SECTIONS)[number]
 
 export const DETAIL_SECTIONS: DetailSection[] = [...ITEM_SECTIONS, 'env']
@@ -25,6 +25,7 @@ export function detailItems(c: Component): DetailItemRef[] {
     ...(d.entities ?? []).map((e) => ({ section: 'entities' as const, id: e.id, label: e.name })),
     ...(d.models ?? []).map((m) => ({ section: 'models' as const, id: m.id, label: m.name })),
     ...(d.topics ?? []).map((t) => ({ section: 'topics' as const, id: t.id, label: t.name })),
+    ...(d.screens ?? []).map((t) => ({ section: 'screens' as const, id: t.id, label: t.name })),
   ]
 }
 

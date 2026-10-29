@@ -154,6 +154,18 @@
                         },
                         "required": ["name"]
                       }
+                    },
+                    "layout": {
+                      "type": "object",
+                      "properties": {
+                        "x": {
+                          "type": "number"
+                        },
+                        "y": {
+                          "type": "number"
+                        }
+                      },
+                      "required": ["x", "y"]
                     }
                   },
                   "required": ["id", "name"]
@@ -196,6 +208,41 @@
                   "required": ["id", "name"]
                 }
               },
+              "screens": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "name": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "path": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "layout": {
+                      "type": "object",
+                      "properties": {
+                        "x": {
+                          "type": "number"
+                        },
+                        "y": {
+                          "type": "number"
+                        }
+                      },
+                      "required": ["x", "y"]
+                    }
+                  },
+                  "required": ["id", "name"]
+                }
+              },
               "env": {
                 "type": "array",
                 "items": {
@@ -220,6 +267,58 @@
               },
               "notes": {
                 "type": "string"
+              },
+              "navigation": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "from": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "to": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "label": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["id", "from", "to"]
+                }
+              },
+              "relations": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "from": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "to": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "cardinality": {
+                      "type": "string",
+                      "enum": ["1:1", "1:N", "N:N"]
+                    },
+                    "label": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["id", "from", "to"]
+                }
               }
             }
           }

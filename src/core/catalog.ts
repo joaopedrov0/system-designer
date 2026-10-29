@@ -1,6 +1,7 @@
 import type { ComponentDetails, ComponentKind, Protocol } from './model'
 
-export type DetailSection = Exclude<keyof ComponentDetails, 'notes'>
+/** Seções em lista. Notas e as ligações do diagrama interno (navegação, relacionamentos) não são. */
+export type DetailSection = Exclude<keyof ComponentDetails, 'notes' | 'navigation' | 'relations'>
 
 export interface ComponentKindDefinition {
   kind: ComponentKind
@@ -25,7 +26,7 @@ export const componentCatalog = define([
     defaultName: 'Cliente',
     icon: 'monitor',
     color: '#3b82f6',
-    sections: ['env'],
+    sections: ['screens', 'env'],
   },
   {
     kind: 'server',
@@ -119,6 +120,7 @@ export const detailSectionInfo: Record<
   entities: { label: 'Tabelas / Entidades', singular: 'tabela', plural: 'tabelas' },
   models: { label: 'Modelos', singular: 'modelo', plural: 'modelos' },
   topics: { label: 'Tópicos', singular: 'tópico', plural: 'tópicos' },
+  screens: { label: 'Telas', singular: 'tela', plural: 'telas' },
   env: { label: 'Variáveis de ambiente', singular: 'variável', plural: 'variáveis' },
 }
 
