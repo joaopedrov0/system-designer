@@ -17,6 +17,7 @@ import {
   type OnSelectionChangeFunc,
 } from '@xyflow/react'
 import { useCallback, useMemo, useRef, useState, type DragEvent } from 'react'
+import { useIsMobile } from '../useIsMobile'
 import { componentCatalog, flowSchedule, searchComponents, type Move } from '../../core'
 import { useEditor } from '../../store/editor'
 import { useResolvedTheme, useView } from '../../store/view'
@@ -52,6 +53,7 @@ export default function Canvas() {
   const flowMode = useView((s) => s.flow)
   const subdiagramActive = useView((s) => s.subdiagramActive)
   const theme = useResolvedTheme()
+  const mobile = useIsMobile()
   const wrapper = useRef<HTMLDivElement>(null)
   const tabletGesture = useTabletNavigation(wrapper)
 
@@ -224,17 +226,19 @@ export default function Canvas() {
       >
         <Background variant={BackgroundVariant.Dots} gap={20} size={1} />
         <Controls showInteractive={false} />
-        <MiniMap
-          pannable
-          zoomable
-          nodeColor={(n) => {
-            const node = n as FlowNode
-            if (node.type === 'component') return componentCatalog[node.data.component.kind].color
-            // O minimapa usa atributos SVG, que não resolvem var(): cores fixas por tema.
-            if (node.type === 'note') return theme === 'dark' ? '#78350f' : '#fde68a'
-            return theme === 'dark' ? '#334155' : '#e2e8f0'
-          }}
-        />
+        {!mobile && (
+          <MiniMap
+            pannable
+            zoomable
+            nodeColor={(n) => {
+              const node = n as FlowNode
+              if (node.type === 'component') return componentCatalog[node.data.component.kind].color
+              // O minimapa usa atributos SVG, que não resolvem var(): cores fixas por tema.
+              if (node.type === 'note') return theme === 'dark' ? '#78350f' : '#fde68a'
+              return theme === 'dark' ? '#334155' : '#e2e8f0'
+            }}
+          />
+        )}
         {!empty && <SearchPanel matches={matches} />}
       </ReactFlow>
       <LaserOverlay />
@@ -242,9 +246,19 @@ export default function Canvas() {
       {empty && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <div className="rounded-lg border border-dashed border-slate-300 bg-surface/80 px-6 py-4 text-center text-sm text-slate-500">
-            Arraste componentes da barra lateral para começar.
-            <br />
-            Conecte-os puxando de uma borda até outro componente.
+            {mobile ? (
+              <>
+                Toque em + para adicionar componentes.
+                <br />
+                Toque num componente e puxe uma das bolinhas até outro para conectar.
+              </>
+            ) : (
+              <>
+                Arraste componentes da barra lateral para começar.
+                <br />
+                Conecte-os puxando de uma borda até outro componente.
+              </>
+            )}
           </div>
         </div>
       )}

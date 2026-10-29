@@ -1,10 +1,12 @@
-import { Redo2, Undo2, Workflow } from 'lucide-react'
+import { Ellipsis, Redo2, Undo2, Workflow } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { useStore } from 'zustand'
 import { redo, undo, useEditor, type SaveStatus } from '../../store/editor'
+import { useIsMobile } from '../useIsMobile'
 import ExportMenu from './ExportMenu'
 import FileLinkMenu from './FileLinkMenu'
 import LayoutButton from './LayoutButton'
+import Popover from './Popover'
 import ScenarioMenu from './ScenarioMenu'
 import ThemeToggle from './ThemeToggle'
 import ViewToggles from './ViewToggles'
@@ -24,6 +26,7 @@ export default function Toolbar() {
 
   // Rascunho local enquanto o campo está em edição; só vira command ao confirmar.
   const [draft, setDraft] = useState<string | null>(null)
+  const mobile = useIsMobile()
 
   const commitName = () => {
     if (draft !== null && draft.trim() && draft.trim() !== name) renameScenario(draft)
@@ -31,15 +34,15 @@ export default function Toolbar() {
   }
 
   return (
-    <header className="flex h-12 shrink-0 items-center gap-3 border-b border-slate-200 bg-surface px-4">
+    <header className="flex h-12 shrink-0 items-center gap-3 border-b border-slate-200 bg-surface px-4 max-md:h-14 max-md:gap-1 max-md:pt-[env(safe-area-inset-top)] max-md:pr-[max(0.5rem,env(safe-area-inset-right))] max-md:pl-[max(0.5rem,env(safe-area-inset-left))]">
       <div className="flex items-center gap-2 font-semibold text-slate-900">
         <Workflow size={18} />
-        System Designer
+        <span className="max-md:hidden">System Designer</span>
       </div>
-      <span className="text-slate-300">/</span>
+      <span className="text-slate-300 max-md:hidden">/</span>
       <input
         aria-label="Nome do cenário"
-        className="w-64 rounded px-1.5 py-0.5 text-sm text-slate-700 outline-none hover:bg-slate-100 focus:bg-slate-100"
+        className="w-64 rounded px-1.5 py-0.5 text-sm text-slate-700 outline-none hover:bg-slate-100 focus:bg-slate-100 max-md:min-h-11 max-md:min-w-0 max-md:flex-1"
         value={draft ?? name}
         onChange={(e) => setDraft(e.target.value)}
         onBlur={commitName}
@@ -52,11 +55,11 @@ export default function Toolbar() {
         }}
       />
       <ScenarioMenu />
-      <FileLinkMenu />
+      {!mobile && <FileLinkMenu />}
 
-      <div className="ml-auto flex items-center gap-1">
+      <div className="ml-auto flex items-center gap-1 max-md:ml-0">
         <span
-          className={`mr-3 text-xs ${saveStatus === 'error' ? 'text-red-600' : 'text-slate-400'}`}
+          className={`mr-3 text-xs max-md:hidden ${saveStatus === 'error' ? 'text-red-600' : 'text-slate-400'}`}
         >
           {saveLabels[saveStatus]}
         </span>
@@ -66,12 +69,29 @@ export default function Toolbar() {
         <ToolButton label="Refazer (Ctrl+Shift+Z)" disabled={!canRedo} onClick={redo}>
           <Redo2 size={16} />
         </ToolButton>
-        <div className="mx-1 h-5 w-px bg-slate-200" />
-        <ViewToggles />
-        <LayoutButton />
-        <ExportMenu />
-        <div className="mx-1 h-5 w-px bg-slate-200" />
-        <ThemeToggle />
+        {mobile ? (
+          // Só o essencial fica à vista; o resto vai para um menu de "mais ações".
+          <Popover label="Mais ações" align="right" trigger={() => <Ellipsis size={18} />}>
+            {() => (
+              <div className="flex flex-wrap items-center gap-1 p-2">
+                <ViewToggles />
+                <LayoutButton />
+                <ExportMenu />
+                <FileLinkMenu />
+                <ThemeToggle />
+              </div>
+            )}
+          </Popover>
+        ) : (
+          <>
+            <div className="mx-1 h-5 w-px bg-slate-200" />
+            <ViewToggles />
+            <LayoutButton />
+            <ExportMenu />
+            <div className="mx-1 h-5 w-px bg-slate-200" />
+            <ThemeToggle />
+          </>
+        )}
       </div>
     </header>
   )
@@ -90,7 +110,7 @@ function ToolButton(props: {
       aria-label={props.label}
       disabled={props.disabled}
       onClick={props.onClick}
-      className="rounded p-1.5 text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent"
+      className="rounded p-1.5 text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent max-md:flex max-md:min-h-11 max-md:min-w-11 max-md:items-center max-md:justify-center"
     >
       {props.children}
     </button>

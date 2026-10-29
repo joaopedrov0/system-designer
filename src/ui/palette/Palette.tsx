@@ -6,7 +6,12 @@ import { useEditor } from '../../store/editor'
 import { addAt, PALETTE_DRAG_MIME, type PaletteItem } from '../canvas/placement'
 import { CatalogIcon } from '../icons'
 
-export default function Palette() {
+/**
+ * Paleta de componentes. No desktop é a coluna lateral; no celular (`sheet`) o mesmo
+ * conteúdo aparece numa gaveta, e tocar num item adiciona no centro da vista e a fecha.
+ */
+export default function Palette(props: { variant?: 'side' | 'sheet'; onAdded?: () => void }) {
+  const sheet = props.variant === 'sheet'
   const { screenToFlowPosition } = useReactFlow()
 
   /** Clique adiciona no centro da área visível, em cascata para não empilhar. */
@@ -17,6 +22,7 @@ export default function Palette() {
     const { components, notes } = useEditor.getState().scenario
     const step = ((components.length + notes.length) % 8) * 40
     addAt(item, { x: center.x + step, y: center.y + step })
+    props.onAdded?.()
   }
 
   /** Soltura de um arraste feito com a caneta: só vale sobre o canvas. */
@@ -26,7 +32,13 @@ export default function Palette() {
   }
 
   return (
-    <aside className="flex w-56 shrink-0 flex-col overflow-y-auto border-r border-slate-200 bg-surface pb-4">
+    <aside
+      className={
+        sheet
+          ? 'flex flex-col pb-2'
+          : 'flex w-56 shrink-0 flex-col overflow-y-auto border-r border-slate-200 bg-surface pb-4'
+      }
+    >
       <Heading>Componentes</Heading>
       <ul className="px-2">
         {componentKindList.map((def) => (
@@ -129,7 +141,7 @@ function PaletteButton(props: {
         onClick={() => {
           if (!suppressClick.current) props.onAdd(props.item)
         }}
-        className="flex w-full cursor-grab items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-sm text-slate-700 hover:bg-slate-100 active:cursor-grabbing"
+        className="flex w-full cursor-grab items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-sm text-slate-700 hover:bg-slate-100 active:cursor-grabbing max-md:min-h-12"
         title="Arraste para o canvas ou clique para adicionar"
       >
         {props.children}
