@@ -55,7 +55,7 @@ function componentSection(s: Scenario, c: Component): string[] {
     for (const e of d.env) {
       // Segredos nunca guardam valor; o export também não inventa um.
       const value = e.secret ? ' (segredo)' : e.value ? ` = \`${e.value}\`` : ''
-      lines.push(`- \`${e.key}\`${value}`)
+      lines.push(`- \`${e.key}\`${value}${e.description ? ` — ${e.description}` : ''}`)
     }
     lines.push('')
   }

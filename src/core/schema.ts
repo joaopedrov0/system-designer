@@ -17,7 +17,19 @@ export const COMPONENT_KINDS = [
   'generic',
 ] as const
 
-export const PROTOCOLS = ['http', 'grpc', 'websocket', 'sql', 'event', 'sdk', 'generic'] as const
+export const PROTOCOLS = [
+  'http',
+  'grpc',
+  'websocket',
+  'sql',
+  'event',
+  'sdk',
+  // Comunicação local entre processos (sockets, pipes, IPC do Electron) e leitura/escrita
+  // de arquivos (volumes, discos, pastas compartilhadas).
+  'ipc',
+  'file',
+  'generic',
+] as const
 
 export const HTTP_METHODS = [
   'GET',
@@ -68,6 +80,8 @@ export const EnvVarSchema = z.object({
   key: z.string().min(1),
   value: z.string().optional(),
   secret: z.boolean().optional(),
+  /** Para que serve ou de onde vem (ex.: "definida no .env", "chave da OpenAI"). */
+  description: z.string().optional(),
 })
 
 export const ComponentDetailsSchema = z.object({

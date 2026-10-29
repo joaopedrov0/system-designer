@@ -139,6 +139,65 @@ const PORT_GAP = 6
 /** Folga entre a faixa da ponta e a quina do componente. */
 const PORT_PAD = 12
 
+/**
+ * Faixas que cabem numa alça lateral antes de valer a pena desviar conexões para cima ou
+ * para baixo (seis faixas, três mãos duplas, já deixam o componente bem mais alto).
+ */
+export const MAX_SIDE_LANES = 6
+
+/**
+ * Quando uma alça lateral fica cheia demais, as conexões de alça automática mais verticais
+ * (vizinho mais acima ou abaixo do que ao lado) passam para as alças de cima/baixo, nas duas
+ * pontas. Alças escolhidas pelo usuário nunca mudam. Altera `handles` no lugar.
+ */
+function balanceSides(
+  connections: Connection[],
+  byId: Map<string, Component>,
+  handles: Map<string, { source?: string; target?: string }>,
+) {
+  const lanes = (c: Connection) => (c.direction === 'two-way' ? 2 : 1)
+  const keyOf = (node: string, handle?: string) => `${node}\u0000${handle}`
+  const load = new Map<string, number>()
+  const add = (key: string, n: number) => load.set(key, (load.get(key) ?? 0) + n)
+  for (const c of connections) {
+    const h = handles.get(c.id)!
+    add(keyOf(c.source, h.source), lanes(c))
+    add(keyOf(c.target, h.target), lanes(c))
+  }
+
+  const lateral = (handle?: string) => handle === 'left' || handle === 'right'
+  // Quanto mais vertical o vizinho, primeiro ele sai da lateral.
+  const candidates = connections
+    .filter((c) => !c.layout?.sourceHandle && !c.layout?.targetHandle)
+    .filter((c) => byId.has(c.source) && byId.has(c.target))
+    .map((c) => {
+      const a = byId.get(c.source)!.layout
+      const b = byId.get(c.target)!.layout
+      const dx = b.x - a.x
+      const dy = b.y - a.y
+      return { c, dy, verticality: Math.abs(dy) / (Math.abs(dx) || 1) }
+    })
+    .sort((p, q) => q.verticality - p.verticality)
+
+  for (const { c, dy } of candidates) {
+    const h = handles.get(c.id)!
+    if (!lateral(h.source) || !lateral(h.target)) continue
+    const sourceKey = keyOf(c.source, h.source)
+    const targetKey = keyOf(c.target, h.target)
+    if (
+      (load.get(sourceKey)! <= MAX_SIDE_LANES && load.get(targetKey)! <= MAX_SIDE_LANES) ||
+      dy === 0
+    )
+      continue
+    add(sourceKey, -lanes(c))
+    add(targetKey, -lanes(c))
+    const next = dy > 0 ? { source: 'bottom', target: 'top' } : { source: 'top', target: 'bottom' }
+    handles.set(c.id, next)
+    add(keyOf(c.source, next.source), lanes(c))
+    add(keyOf(c.target, next.target), lanes(c))
+  }
+}
+
 /** Tamanho mínimo de um componente para as faixas das suas alças caberem nele. */
 export interface MinSize {
   width?: number
@@ -171,6 +230,7 @@ export function portLayout(connections: Connection[], components: Component[]) {
       ]
     }),
   )
+  balanceSides(connections, byId, handles)
 
   // Componente -> alça -> vizinho -> conexões (com a ponta que está nesta alça).
   type Ends = { c: Connection; end: 'source' | 'target' }[]

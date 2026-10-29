@@ -129,5 +129,7 @@ export const protocolLabels: Record<Protocol, string> = {
   sql: 'SQL',
   event: 'Evento',
   sdk: 'SDK',
+  ipc: 'IPC',
+  file: 'Arquivo',
   generic: 'Genérico',
 }

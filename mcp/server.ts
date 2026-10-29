@@ -17,7 +17,8 @@ const PROTOCOL_VERSIONS = ['2025-06-18', '2025-03-26', '2024-11-05']
 const INSTRUCTIONS = `Edita cenários do System Designer: diagramas de arquitetura de software guardados num arquivo .json.
 Comece com get_scenario (resumo em Markdown com todos os ids). Prefira o mínimo: um componente com nome e tipo já é válido; rotas, tabelas, modelos e tópicos (add_detail_item) só quando agregarem.
 Os ids são gerados a partir dos nomes e devolvidos por cada operação; use-os nas seguintes.
-Depois de adicionar vários componentes, chame auto_layout para organizar o desenho.
+Para montar várias partes de uma vez, use batch (tudo ou nada; "$N" cita o id criado no passo N).
+Depois de adicionar vários componentes, chame auto_layout para organizar o desenho; ao terminar, validate_scenario aponta inconsistências.
 Cada operação relê e regrava o arquivo; o editor no navegador, se vinculado ao arquivo, atualiza sozinho.`
 
 type Json = Record<string, unknown>

@@ -36,6 +36,8 @@ import {
   updateGroup,
   updateNote,
   updateScenarioDescription,
+  validateScenario,
+  formatValidation,
   type ItemSection,
   type NewDetailItem,
   type Point,
@@ -48,6 +50,8 @@ export interface OperationResult {
   scenario?: Scenario
   /** Resposta em texto para o agente. */
   text: string
+  /** Id do elemento criado, nas operações que criam algo (usado pelas referências do batch). */
+  id?: string
 }
 
 export interface Operation<I extends z.ZodType = z.ZodType> {
@@ -177,7 +181,7 @@ export const operations: Operation[] = [
         ? updateComponent(r.scenario, r.id, { tags: input.tags })
         : r.scenario
       const label = componentCatalog[input.kind].label
-      return { scenario, text: `Componente criado com id "${r.id}" (${label}).` }
+      return { scenario, id: r.id, text: `Componente criado com id "${r.id}" (${label}).` }
     },
   }),
   define({
@@ -244,7 +248,7 @@ export const operations: Operation[] = [
       }
       const r = connect(s, input)
       const scenario = async ? updateConnection(r.scenario, r.id, { async }) : r.scenario
-      return { scenario, text: `Conexão criada com id "${r.id}".` }
+      return { scenario, id: r.id, text: `Conexão criada com id "${r.id}".` }
     },
   }),
   define({
@@ -295,7 +299,11 @@ export const operations: Operation[] = [
 ${z.prettifyError(parsed.error)}`)
       }
       const r = addDetailItem(s, componentId, section, parsed.data as NewDetailItem[typeof section])
-      return { scenario: r.scenario, text: `Item criado em ${section} com id "${r.id}".` }
+      return {
+        scenario: r.scenario,
+        id: r.id,
+        text: `Item criado em ${section} com id "${r.id}".`,
+      }
     },
   }),
   define({
@@ -354,7 +362,7 @@ ${z.prettifyError(parsed.error)}`)
           members.map((c) => ({ id: c.id, x: c.layout.x, y: c.layout.y, groupId: r.id })),
         )
       }
-      return { scenario, text: `Grupo criado com id "${r.id}".` }
+      return { scenario, id: r.id, text: `Grupo criado com id "${r.id}".` }
     },
   }),
   define({
@@ -387,7 +395,7 @@ ${z.prettifyError(parsed.error)}`)
     run: (s, { text, x, y }) => {
       const auto = notePosition(s, s.notes.length)
       const r = addNote(s, { text, layout: { x: x ?? auto.x, y: y ?? auto.y, ...NOTE } })
-      return { scenario: r.scenario, text: `Nota criada com id "${r.id}".` }
+      return { scenario: r.scenario, id: r.id, text: `Nota criada com id "${r.id}".` }
     },
   }),
   define({
@@ -456,6 +464,68 @@ ${z.prettifyError(parsed.error)}`)
     },
   }),
 ]
+
+operations.push(
+  define({
+    name: 'validate_scenario',
+    description:
+      'Confere o cenário inteiro e lista erros (referências quebradas, ids repetidos, segredos com valor) e avisos (conexões repetidas, componentes sem conexão, fora do grupo ou sobrepostos). Bom para revisar ao terminar.',
+    input: z.object({}),
+    run: (s) => ({ text: formatValidation(validateScenario(s)) }),
+  }),
+  define({
+    name: 'batch',
+    description:
+      'Executa várias operações em sequência numa só chamada, tudo ou nada: se um passo falhar, nada é gravado. Um passo pode citar o id criado por um passo anterior com a string "$N" (N = número do passo, a partir de 1), ex.: [{op:"add_component", input:{kind:"server", name:"API"}}, {op:"add_component", input:{kind:"database"}}, {op:"connect", input:{source:"$1", target:"$2", protocol:"sql"}}].',
+    input: z.object({
+      steps: z
+        .array(
+          z.object({
+            op: z.string().describe('Nome da operação (qualquer uma, exceto batch).'),
+            input: z.record(z.string(), z.unknown()).optional().describe('Entrada da operação.'),
+          }),
+        )
+        .min(1),
+    }),
+    run: async (s, { steps }) => {
+      let scenario = s
+      const ids: (string | undefined)[] = []
+      const lines: string[] = []
+      for (const [i, step] of steps.entries()) {
+        const n = i + 1
+        if (step.op === 'batch') throw new Error(`Passo ${n}: batch não pode conter outro batch.`)
+        try {
+          const input = resolveRefs(step.input ?? {}, ids, n)
+          const r = await runOperation(scenario, step.op, input)
+          if (r.scenario) scenario = r.scenario
+          ids.push(r.id)
+          lines.push(`${n}. ${r.text}`)
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err)
+          throw new Error(`Passo ${n} (${step.op}) falhou; nada foi gravado.\n${message}`)
+        }
+      }
+      return { scenario, text: lines.join('\n') }
+    },
+  }),
+)
+
+/** Troca strings "$N" pelo id criado no passo N (recursivo em listas e objetos). */
+function resolveRefs(value: unknown, ids: (string | undefined)[], step: number): unknown {
+  if (typeof value === 'string') {
+    const m = /^\$(\d+)$/.exec(value)
+    if (!m) return value
+    const ref = Number(m[1])
+    if (ref < 1 || ref >= step) throw new Error(`"${value}" precisa citar um passo anterior.`)
+    const id = ids[ref - 1]
+    if (!id) throw new Error(`"${value}": o passo ${ref} não criou nenhum elemento.`)
+    return id
+  }
+  if (Array.isArray(value)) return value.map((v) => resolveRefs(v, ids, step))
+  if (value && typeof value === 'object')
+    return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, resolveRefs(v, ids, step)]))
+  return value
+}
 
 export const operationsByName = new Map(operations.map((op) => [op.name, op]))
 

@@ -210,6 +210,9 @@
                     },
                     "secret": {
                       "type": "boolean"
+                    },
+                    "description": {
+                      "type": "string"
                     }
                   },
                   "required": ["key"]
@@ -244,7 +247,7 @@
           },
           "protocol": {
             "type": "string",
-            "enum": ["http", "grpc", "websocket", "sql", "event", "sdk", "generic"]
+            "enum": ["http", "grpc", "websocket", "sql", "event", "sdk", "ipc", "file", "generic"]
           },
           "label": {
             "type": "string"

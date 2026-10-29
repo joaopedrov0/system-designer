@@ -86,7 +86,9 @@ O arquivo no fim é o padrão; sem ele, cada ferramenta recebe `file`. Ferrament
 `list_component_kinds`, `add_component`, `update_component`, `connect`, `update_connection`,
 `reverse_connection`, `add_detail_item`, `set_component_details`, `add_group`,
 `update_group`, `set_group_membership`, `add_note`, `update_note`, `move_elements`,
-`auto_layout`, `remove_elements`, `set_scenario_info`.
+`auto_layout`, `remove_elements`, `set_scenario_info`, `validate_scenario` (erros e avisos
+de consistência) e `batch` (vários passos numa chamada, tudo ou nada; `"$N"` cita o id criado
+no passo N).
 
 A CLI oferece as mesmas operações:
 

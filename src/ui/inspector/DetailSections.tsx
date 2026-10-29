@@ -177,7 +177,7 @@ export default function DetailSections({ component }: { component: Component }) 
                         env: replace(
                           d.env!,
                           i,
-                          v.secret ? { key: v.key } : { key: v.key, secret: true },
+                          v.secret ? omit(v, 'secret') : { ...omit(v, 'value'), secret: true },
                         ),
                       })
                     }
@@ -201,6 +201,15 @@ export default function DetailSections({ component }: { component: Component }) 
                     className={compact}
                   />
                 )}
+                <CommitInput
+                  aria-label="Descrição da variável"
+                  value={v.description ?? ''}
+                  placeholder="para que serve / de onde vem (opcional)"
+                  onCommit={(description) =>
+                    save({ env: replace(d.env!, i, withOptional(v, 'description', description)) })
+                  }
+                  className={compact}
+                />
               </Row>
             ))}
         </Section>
@@ -304,6 +313,12 @@ function withOptional<T extends object, K extends keyof T>(item: T, key: K, valu
   const next = { ...item }
   if (value.trim()) next[key] = value.trim() as T[K]
   else delete next[key]
+  return next
+}
+
+function omit<T extends object, K extends keyof T>(item: T, key: K): T {
+  const next = { ...item }
+  delete next[key]
   return next
 }
 

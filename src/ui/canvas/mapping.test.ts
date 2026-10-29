@@ -62,3 +62,46 @@ describe('portLayout: tamanho mínimo dos componentes', () => {
     expect(minSizes.get('a')).toEqual({ width: 3 * LANE_GAP + 6 + 2 * 12 })
   })
 })
+
+describe('portLayout: lateral cheia demais', () => {
+  const node = (id: string, x: number, y: number): Component => ({
+    id,
+    kind: 'server',
+    name: id,
+    layout: { x, y },
+  })
+  // Quatro vizinhos à direita, todos ligados em mão dupla: 8 faixas na lateral do hub.
+  const nodes = [
+    node('hub', 0, 300),
+    node('n1', 500, 0),
+    node('n2', 500, 250),
+    node('n3', 500, 350),
+    node('n4', 500, 600),
+  ]
+  const conns = ['n1', 'n2', 'n3', 'n4'].map((n) => conn(`hub-${n}`, 'hub', n, true))
+
+  it('desvia as conexões mais verticais para cima/baixo até caberem', () => {
+    const { handles, minSizes } = portLayout(conns, nodes)
+    // n1 está bem acima e é o mais vertical: sai por cima e chega por baixo.
+    expect(handles.get('hub-n1')).toEqual({ source: 'top', target: 'bottom' })
+    // Com ele fora, sobram 6 faixas: o limite. Os demais seguem pela lateral.
+    for (const id of ['hub-n2', 'hub-n3', 'hub-n4'])
+      expect(handles.get(id)).toEqual({ source: 'right', target: 'left' })
+    expect(minSizes.get('hub')!.height).toBeLessThan(5 * LANE_GAP + 2 * 6 + 2 * 12 + 1)
+  })
+
+  it('alças escolhidas pelo usuário nunca mudam', () => {
+    const fixed = conns.map((c) => ({
+      ...c,
+      layout: { sourceHandle: 'right', targetHandle: 'left' },
+    }))
+    const { handles } = portLayout(fixed, nodes)
+    for (const c of fixed) expect(handles.get(c.id)).toEqual({ source: 'right', target: 'left' })
+  })
+
+  it('até o limite, nada muda', () => {
+    const { handles } = portLayout(conns.slice(1), nodes)
+    for (const c of conns.slice(1))
+      expect(handles.get(c.id)).toEqual({ source: 'right', target: 'left' })
+  })
+})

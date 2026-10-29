@@ -462,6 +462,8 @@ test('nó cresce para caber as conexões que dividem uma alça', async ({ page }
           source: 'a',
           target: n,
           direction: 'two-way',
+          // Alças escolhidas: sem isso, a lateral cheia desviaria conexões para cima/baixo.
+          layout: { sourceHandle: 'right', targetHandle: 'left' },
         })),
       }),
     ),
