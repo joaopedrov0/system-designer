@@ -57,10 +57,10 @@ export default function ComponentInspector({ id }: { id: string }) {
         />
       </Field>
 
-      <DetailSections component={component} />
       <ErrorBoundary label="Diagrama interno">
         <SubdiagramSection component={component} />
       </ErrorBoundary>
+      <DetailSections component={component} />
 
       <div className="border-t border-slate-100 pt-3">
         <DeleteButton

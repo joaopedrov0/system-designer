@@ -104,3 +104,13 @@ test('banco: diagrama ER começa fechado, abre, cria tabela e expande em tela ch
   await page.keyboard.press('Escape')
   await expect(dialog).toHaveCount(0)
 })
+
+test('banco: o diagrama interno vem antes da lista de tabelas no inspector', async ({ page }) => {
+  await open(page, 'db')
+  await page.getByRole('button', { name: /Diagrama ER/ }).click()
+  const diagram = await sub(page).boundingBox()
+  const firstTable = await page.getByLabel('Nome da tabela').first().boundingBox()
+  expect(diagram).not.toBeNull()
+  expect(firstTable).not.toBeNull()
+  expect(diagram!.y).toBeLessThan(firstTable!.y)
+})
