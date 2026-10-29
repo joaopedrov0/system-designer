@@ -46,6 +46,10 @@
               "storage",
               "ai-provider",
               "external-api",
+              "host",
+              "vm",
+              "edge-device",
+              "sensor",
               "generic"
             ]
           },
@@ -69,6 +73,108 @@
               "type": "string"
             }
           },
+          "hostId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "replicas": {
+            "type": "object",
+            "properties": {
+              "min": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "max": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "ephemeral": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "min"
+            ]
+          },
+          "hardware": {
+            "type": "object",
+            "properties": {
+              "cpuCores": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "memoryGb": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "diskGb": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "gpu": {
+                "type": "string"
+              },
+              "os": {
+                "type": "string"
+              },
+              "location": {
+                "type": "string"
+              },
+              "address": {
+                "type": "string"
+              },
+              "powerWatts": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              }
+            }
+          },
+          "sensor": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "camera",
+                  "environmental",
+                  "radar",
+                  "generic"
+                ]
+              },
+              "resolution": {
+                "type": "string"
+              },
+              "fps": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "bitrateMbps": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "codec": {
+                "type": "string"
+              },
+              "sampleHz": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "detectionsPerSecond": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "readingBytes": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
           "layout": {
             "type": "object",
             "properties": {
@@ -88,7 +194,10 @@
                 "type": "boolean"
               }
             },
-            "required": ["x", "y"]
+            "required": [
+              "x",
+              "y"
+            ]
           },
           "details": {
             "type": "object",
@@ -123,7 +232,11 @@
                       "type": "string"
                     }
                   },
-                  "required": ["id", "method", "path"]
+                  "required": [
+                    "id",
+                    "method",
+                    "path"
+                  ]
                 }
               },
               "entities": {
@@ -152,7 +265,9 @@
                             "type": "string"
                           }
                         },
-                        "required": ["name"]
+                        "required": [
+                          "name"
+                        ]
                       }
                     },
                     "layout": {
@@ -165,10 +280,16 @@
                           "type": "number"
                         }
                       },
-                      "required": ["x", "y"]
+                      "required": [
+                        "x",
+                        "y"
+                      ]
                     }
                   },
-                  "required": ["id", "name"]
+                  "required": [
+                    "id",
+                    "name"
+                  ]
                 }
               },
               "models": {
@@ -188,7 +309,10 @@
                       "type": "string"
                     }
                   },
-                  "required": ["id", "name"]
+                  "required": [
+                    "id",
+                    "name"
+                  ]
                 }
               },
               "topics": {
@@ -205,7 +329,10 @@
                       "minLength": 1
                     }
                   },
-                  "required": ["id", "name"]
+                  "required": [
+                    "id",
+                    "name"
+                  ]
                 }
               },
               "screens": {
@@ -237,10 +364,16 @@
                           "type": "number"
                         }
                       },
-                      "required": ["x", "y"]
+                      "required": [
+                        "x",
+                        "y"
+                      ]
                     }
                   },
-                  "required": ["id", "name"]
+                  "required": [
+                    "id",
+                    "name"
+                  ]
                 }
               },
               "env": {
@@ -262,7 +395,9 @@
                       "type": "string"
                     }
                   },
-                  "required": ["key"]
+                  "required": [
+                    "key"
+                  ]
                 }
               },
               "notes": {
@@ -289,7 +424,11 @@
                       "type": "string"
                     }
                   },
-                  "required": ["id", "from", "to"]
+                  "required": [
+                    "id",
+                    "from",
+                    "to"
+                  ]
                 }
               },
               "relations": {
@@ -311,19 +450,32 @@
                     },
                     "cardinality": {
                       "type": "string",
-                      "enum": ["1:1", "1:N", "N:N"]
+                      "enum": [
+                        "1:1",
+                        "1:N",
+                        "N:N"
+                      ]
                     },
                     "label": {
                       "type": "string"
                     }
                   },
-                  "required": ["id", "from", "to"]
+                  "required": [
+                    "id",
+                    "from",
+                    "to"
+                  ]
                 }
               }
             }
           }
         },
-        "required": ["id", "kind", "name", "layout"]
+        "required": [
+          "id",
+          "kind",
+          "name",
+          "layout"
+        ]
       }
     },
     "connections": {
@@ -346,14 +498,34 @@
           },
           "protocol": {
             "type": "string",
-            "enum": ["http", "grpc", "websocket", "sql", "event", "sdk", "ipc", "file", "generic"]
+            "enum": [
+              "http",
+              "grpc",
+              "websocket",
+              "sql",
+              "event",
+              "sdk",
+              "ipc",
+              "file",
+              "mqtt",
+              "rtsp",
+              "udp",
+              "modbus",
+              "opcua",
+              "coap",
+              "serial",
+              "generic"
+            ]
           },
           "label": {
             "type": "string"
           },
           "direction": {
             "type": "string",
-            "enum": ["one-way", "two-way"]
+            "enum": [
+              "one-way",
+              "two-way"
+            ]
           },
           "async": {
             "type": "boolean"
@@ -376,7 +548,11 @@
             }
           }
         },
-        "required": ["id", "source", "target"]
+        "required": [
+          "id",
+          "source",
+          "target"
+        ]
       }
     },
     "groups": {
@@ -416,10 +592,19 @@
                 "type": "number"
               }
             },
-            "required": ["x", "y", "w", "h"]
+            "required": [
+              "x",
+              "y",
+              "w",
+              "h"
+            ]
           }
         },
-        "required": ["id", "name", "layout"]
+        "required": [
+          "id",
+          "name",
+          "layout"
+        ]
       }
     },
     "notes": {
@@ -451,14 +636,27 @@
                 "type": "number"
               }
             },
-            "required": ["x", "y"]
+            "required": [
+              "x",
+              "y"
+            ]
           }
         },
-        "required": ["id", "text", "layout"]
+        "required": [
+          "id",
+          "text",
+          "layout"
+        ]
       }
     }
   },
-  "required": ["schemaVersion", "id", "name", "createdAt", "updatedAt"],
+  "required": [
+    "schemaVersion",
+    "id",
+    "name",
+    "createdAt",
+    "updatedAt"
+  ],
   "$id": "https://system-designer.local/schema/scenario.v1.json",
   "title": "System Designer — cenário",
   "description": "Descreve um sistema de software: componentes, conexões entre eles e detalhes opcionais (rotas, tabelas, modelos de IA, tópicos, variáveis). Só `kind` e `name` são obrigatórios em um componente; o restante é complexidade progressiva."

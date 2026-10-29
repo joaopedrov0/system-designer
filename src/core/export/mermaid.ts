@@ -13,6 +13,10 @@ const shapes: Record<ComponentKind, [string, string]> = {
   storage: ['[(', ')]'],
   'ai-provider': ['(', ')'],
   'external-api': ['>', ']'],
+  host: ['[', ']'],
+  vm: ['[', ']'],
+  'edge-device': ['[/', '\\]'],
+  sensor: ['((', '))'],
   generic: ['[', ']'],
 }
 

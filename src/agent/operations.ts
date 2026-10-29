@@ -16,16 +16,19 @@ import {
   connect,
   EntitySchema,
   EnvVarSchema,
+  HardwareSchema,
   HTTP_METHODS,
   ITEM_SECTIONS,
   ModelSchema,
   moveElements,
   PROTOCOLS,
   removeElements,
+  ReplicasSchema,
   renameScenario,
   resizeElement,
   reverseConnection,
   RouteSchema,
+  SensorSchema,
   TopicSchema,
   toJSON,
   toMarkdown,
@@ -118,6 +121,32 @@ const protocol = z.enum(PROTOCOLS)
 const direction = z.enum(['one-way', 'two-way'])
 const optionalText = z.string().optional()
 
+// Infraestrutura (opcional). `null` remove o campo num componente existente.
+const infraFields = {
+  hostId: z
+    .string()
+    .nullable()
+    .optional()
+    .describe(
+      'Id de um componente host, vm ou edge-device onde este roda (null remove). Crie o host antes.',
+    ),
+  replicas: ReplicasSchema.nullable()
+    .optional()
+    .describe(
+      'Cópias do componente: {min, max?, ephemeral?}. Ex.: {min: 2, max: 10} (autoescala) ou {min: 20} para 20 câmeras iguais. ephemeral = nasce e morre (job, cron). null remove.',
+    ),
+  hardware: HardwareSchema.nullable()
+    .optional()
+    .describe(
+      'Capacidade de um host/vm/edge-device: cpuCores, memoryGb, diskGb, gpu, os, location, address, powerWatts. null remove.',
+    ),
+  sensor: SensorSchema.nullable()
+    .optional()
+    .describe(
+      'Atributos de um sensor: type (camera|environmental|radar|generic) e o que gera carga: câmera = bitrateMbps (+ resolution, fps, codec); ambiental = sampleHz e readingBytes; radar = detectionsPerSecond e readingBytes. O resumo estima banda e GB/dia. null remove.',
+    ),
+}
+
 const itemSchemas = {
   routes: RouteSchema.omit({ id: true }),
   // A posição no diagrama interno fica com a UI (ou com o padrão em grade).
@@ -172,6 +201,7 @@ export const operations: Operation[] = [
       description: optionalText,
       groupId: optionalText.describe('Id de um grupo existente.'),
       tags: z.array(z.string()).optional(),
+      ...infraFields,
       x: z.number().optional(),
       y: z.number().optional(),
     }),
@@ -185,8 +215,17 @@ export const operations: Operation[] = [
         groupId: input.groupId,
         position: { x: input.x ?? auto.x, y: input.y ?? auto.y },
       })
-      const scenario = input.tags
-        ? updateComponent(r.scenario, r.id, { tags: input.tags })
+      const extras = Object.fromEntries(
+        Object.entries({
+          tags: input.tags,
+          hostId: input.hostId,
+          replicas: input.replicas,
+          hardware: input.hardware,
+          sensor: input.sensor,
+        }).filter(([, v]) => v !== undefined),
+      )
+      const scenario = Object.keys(extras).length
+        ? updateComponent(r.scenario, r.id, extras)
         : r.scenario
       const label = componentCatalog[input.kind].label
       return { scenario, id: r.id, text: `Componente criado com id "${r.id}" (${label}).` }
@@ -195,7 +234,7 @@ export const operations: Operation[] = [
   define({
     name: 'update_component',
     description:
-      'Altera nome, tipo, tecnologia, descrição ou tags de um componente. Texto vazio remove o campo opcional.',
+      'Altera nome, tipo, tecnologia, descrição, tags ou infraestrutura (hostId, replicas, hardware, sensor) de um componente. Texto vazio remove o campo opcional; null remove os de infraestrutura.',
     input: z.object({
       id: z.string(),
       name: optionalText,
@@ -203,6 +242,7 @@ export const operations: Operation[] = [
       technology: optionalText,
       description: optionalText,
       tags: z.array(z.string()).optional(),
+      ...infraFields,
     }),
     run: (s, { id, ...patch }) => {
       const defined = Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined))

@@ -41,6 +41,10 @@ function ComponentNode({ data, selected }: NodeProps<ComponentFlowNode>) {
     count: detailCount(c, section),
   })).filter((b) => b.count > 0)
   const expanded = !!c.layout.expanded && badges.length > 0
+  const replicated = !!c.replicas && (c.replicas.max ?? c.replicas.min) > 1
+  const hostName = useEditor((s) =>
+    c.hostId ? s.scenario.components.find((x) => x.id === c.hostId)?.name : undefined,
+  )
 
   const commit = (value: string) => {
     setEditing(false)
@@ -50,7 +54,12 @@ function ComponentNode({ data, selected }: NodeProps<ComponentFlowNode>) {
   return (
     <div
       // Coluna centralizada: se o nó crescer para caber as conexões, o conteúdo fica no meio.
-      className={`group flex flex-col justify-center rounded-lg border bg-surface px-3 py-2.5 shadow-sm transition-shadow ${
+      className={`group relative flex flex-col justify-center rounded-lg border bg-surface px-3 py-2.5 transition-shadow ${
+        // Réplicas: nó "empilhado" (como um baralho); efêmero: borda tracejada.
+        replicated
+          ? 'shadow-[4px_4px_0_-1px_var(--color-surface),4px_4px_0_0_var(--color-slate-300),8px_8px_0_-1px_var(--color-surface),8px_8px_0_0_var(--color-slate-300)]'
+          : 'shadow-sm'
+      } ${c.replicas?.ephemeral ? 'border-dashed' : ''} ${
         selected ? 'border-slate-900 ring-2 ring-slate-900/15' : 'border-slate-200 hover:shadow-md'
       }`}
       style={{
@@ -59,6 +68,18 @@ function ComponentNode({ data, selected }: NodeProps<ComponentFlowNode>) {
       }}
       onDoubleClick={() => setEditing(true)}
     >
+      {c.replicas && (
+        <span
+          data-testid="replicas-badge"
+          className="absolute -top-2 -right-2 z-10 rounded-full bg-slate-900 px-1.5 py-px text-[10px] font-semibold text-slate-50"
+          title={c.replicas.ephemeral ? 'Réplicas efêmeras' : 'Réplicas'}
+        >
+          ×
+          {c.replicas.max !== undefined && c.replicas.max !== c.replicas.min
+            ? `${c.replicas.min}–${c.replicas.max}`
+            : c.replicas.min}
+        </span>
+      )}
       {sides.map((side) => (
         <Handle
           key={side.id}
@@ -96,6 +117,11 @@ function ComponentNode({ data, selected }: NodeProps<ComponentFlowNode>) {
             </div>
           )}
           <div className="truncate text-xs text-slate-500">{c.technology ?? def.label}</div>
+          {hostName && (
+            <div className="truncate text-[10px] text-slate-400" title={`Roda em ${hostName}`}>
+              em {hostName}
+            </div>
+          )}
         </div>
       </div>
 

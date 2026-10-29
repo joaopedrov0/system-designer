@@ -17,15 +17,26 @@ import type {
   Entity,
   EnvVar,
   Group,
+  Hardware,
   Note,
   Point,
   Protocol,
+  Replicas,
   Route,
   Scenario,
   Screen,
+  Sensor,
   Topic,
 } from './model'
-import { ComponentDetailsSchema, PROTOCOLS, SCHEMA_VERSION } from './schema'
+import {
+  ComponentDetailsSchema,
+  HardwareSchema,
+  HOST_KINDS,
+  PROTOCOLS,
+  ReplicasSchema,
+  SCHEMA_VERSION,
+  SensorSchema,
+} from './schema'
 
 export interface Created {
   scenario: Scenario
@@ -87,7 +98,35 @@ export function addComponent(s: Scenario, input: AddComponentInput): Created {
 
 export type ComponentPatch = Partial<
   Pick<Component, 'name' | 'kind' | 'technology' | 'description' | 'tags'>
->
+> & {
+  /** Host, VM ou dispositivo de borda onde roda; `null`/`undefined` remove. */
+  hostId?: string | null
+  replicas?: Replicas | null
+  hardware?: Hardware | null
+  sensor?: Sensor | null
+}
+
+function parseInfra<T>(schema: z.ZodType<T>, value: unknown, what: string): T {
+  const parsed = schema.safeParse(value)
+  if (!parsed.success) throw new CommandError(`${what} inválido:\n${z.prettifyError(parsed.error)}`)
+  return parsed.data
+}
+
+/** Confere que `hostId` existe, é um tipo que hospeda e não forma ciclo (host de si mesmo). */
+function checkHost(s: Scenario, id: string, hostId: string) {
+  const host = findComponent(s, hostId)
+  if (!(HOST_KINDS as readonly string[]).includes(host.kind)) {
+    throw new CommandError(
+      `"${hostId}" é ${componentCatalog[host.kind].label}, que não hospeda componentes (use host, vm ou edge-device).`,
+    )
+  }
+  const seen = new Set<string>()
+  for (let at: string | undefined = hostId; at && !seen.has(at); at = findComponent(s, at).hostId) {
+    if (at === id)
+      throw new CommandError(`"${id}" não pode rodar em "${hostId}": formaria um ciclo.`)
+    seen.add(at)
+  }
+}
 
 /** Campos opcionais passados como `undefined` ou string vazia são removidos. */
 export function updateComponent(s: Scenario, id: string, patch: ComponentPatch): Scenario {
@@ -103,6 +142,30 @@ export function updateComponent(s: Scenario, id: string, patch: ComponentPatch):
           throw new CommandError(`Tipo de componente desconhecido: ${patch.kind}`)
         }
         next.kind = patch.kind
+      }
+      if ('hostId' in patch) {
+        if (patch.hostId) {
+          checkHost(s, id, patch.hostId)
+          next.hostId = patch.hostId
+        } else delete next.hostId
+      }
+      if ('replicas' in patch) {
+        if (patch.replicas) {
+          const replicas = parseInfra(ReplicasSchema, patch.replicas, 'Réplicas')
+          if (replicas.max !== undefined && replicas.max < replicas.min) {
+            throw new CommandError('Réplicas: o máximo não pode ser menor que o mínimo.')
+          }
+          next.replicas = replicas
+        } else delete next.replicas
+      }
+      if ('hardware' in patch) {
+        const hardware = patch.hardware && parseInfra(HardwareSchema, patch.hardware, 'Hardware')
+        if (hardware && Object.keys(hardware).length > 0) next.hardware = hardware
+        else delete next.hardware
+      }
+      if ('sensor' in patch) {
+        if (patch.sensor) next.sensor = parseInfra(SensorSchema, patch.sensor, 'Sensor')
+        else delete next.sensor
       }
       if ('technology' in patch) setOptionalText(next, 'technology', patch.technology)
       if ('description' in patch) setOptionalText(next, 'description', patch.description)
@@ -148,7 +211,9 @@ export function removeElements(s: Scenario, ids: ElementIds): Scenario {
     ...s,
     components: s.components
       .filter((c) => !components.has(c.id))
-      .map((c) => (c.groupId && groups.has(c.groupId) ? omit(c, 'groupId') : c)),
+      .map((c) => (c.groupId && groups.has(c.groupId) ? omit(c, 'groupId') : c))
+      // O que rodava num host removido fica sem host.
+      .map((c) => (c.hostId && components.has(c.hostId) ? omit(c, 'hostId') : c)),
     connections: s.connections.filter(
       (c) => !connections.has(c.id) && !components.has(c.source) && !components.has(c.target),
     ),
